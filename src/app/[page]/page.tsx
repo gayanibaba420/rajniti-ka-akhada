@@ -1,0 +1,14 @@
+import { notFound } from "next/navigation";
+import { siteConfig } from "@/lib/data";
+
+const pages: Record<string, { title: string; body: string[] }> = {
+  about: { title: "हमारे बारे में", body: ["राजनीति का अखाड़ा एक डिजिटल-प्रथम हिंदी समाचार मंच है। हमारा लक्ष्य हरियाणा और हिसार की स्थानीय आवाज़ को तथ्यपरक, संतुलित और सुलभ पत्रकारिता के साथ सामने लाना है।", "डेमो पोर्टल की सामग्री प्रदर्शन के लिए बनाई गई है। वास्तविक संपादकीय संचालन में हर खबर बहु-स्तरीय तथ्य जांच और संपादकीय समीक्षा से गुजरती है।"] },
+  contact: { title: "संपर्क करें", body: [`संपादकीय सुझाव और सुधार के लिए हमें ${siteConfig.email} पर लिखें।`, "किसी खबर से जुड़ी संवेदनशील जानकारी भेजते समय निजी या गोपनीय डेटा साझा न करें। उत्पादन सेवा में सुरक्षित टिपलाइन अलग से जोड़ी जानी चाहिए।"] },
+  privacy: { title: "गोपनीयता नीति", body: ["यह डेमो पोर्टल कोई व्यक्तिगत डेटा सर्वर पर संग्रहित नहीं करता। थीम की पसंद केवल आपके ब्राउज़र के localStorage में रहती है।", "उत्पादन परिनियोजन से पहले कुकी सहमति, एनालिटिक्स डेटा प्रतिधारण, उपयोगकर्ता अधिकार और शिकायत संपर्क के साथ विधिक समीक्षा आवश्यक है।"] },
+};
+
+export function generateStaticParams(){ return Object.keys(pages).map((page)=>({page})); }
+export default async function InfoPage({params}:{params:Promise<{page:string}>}){
+  const page=pages[(await params).page]; if(!page) notFound();
+  return <article className="container-main min-h-[50vh] max-w-3xl py-12"><h1 className="section-title">{page.title}</h1><div className="surface prose-news rounded-2xl p-6 sm:p-9">{page.body.map(text=><p key={text}>{text}</p>)}</div></article>
+}

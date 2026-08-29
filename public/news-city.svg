@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="t">
+  <title id="t">9?8>0 690 > 8>G$? &C6M/</title>
+  <defs><linearGradient id="g" y2="1"><stop stop-color="#565a8c"/><stop offset="1" stop-color="#f29b7b"/></linearGradient></defs>
+  <rect width="1200" height="720" fill="url(#g)"/><circle cx="940" cy="138" r="58" fill="#ffd793"/>
+  <path d="M0 390h160v-90h150v150h110V220h190v190h120V280h150v130h110V190h210v530H0z" fill="#26323f"/>
+  <g fill="#ffdc7b"><path d="M55 450h45v35H55zM225 355h35v35h-35zM475 280h55v40h-55zM475 350h55v40h-55zM770 330h40v40h-40zM1060 250h50v45h-50zM1060 330h50v45h-50z"/></g>
+  <path d="M0 595h1200v125H0z" fill="#171f27"/><path d="M0 655h1200" stroke="#f4cc61" stroke-width="8" stroke-dasharray="70 45"/>
+  <path d="M400 565h250l55 75H365z" fill="#b9342e"/><circle cx="430" cy="645" r="38" fill="#090d10"/><circle cx="650" cy="645" r="38" fill="#090d10"/>
+</svg>

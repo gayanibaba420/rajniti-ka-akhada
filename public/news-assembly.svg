@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+  <title id="t">90?/>#> 5?'>(8-> -5( > ?$M0</title><desc id="d">8.>>0 G 2? ,(>/> /> 8>G$? 8M%>(@/ ?$M0</desc>
+  <defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#86b8d5"/><stop offset="1" stop-color="#f5d6a2"/></linearGradient></defs>
+  <rect width="1200" height="720" fill="url(#g)"/><circle cx="965" cy="128" r="62" fill="#fff1b8" opacity=".9"/>
+  <path d="M0 520 260 420 420 490 650 350 900 480 1200 370v350H0z" fill="#436b4e"/>
+  <path d="M250 550h700v100H250zM320 330h560v220H320z" fill="#f6efe1" stroke="#43352f" stroke-width="10"/>
+  <path d="m290 330 310-170 310 170z" fill="#a9352c" stroke="#43352f" stroke-width="10"/>
+  <g fill="#dfc7a0"><path d="M370 370h65v180h-65zM480 370h65v180h-65zM590 370h65v180h-65zM700 370h65v180h-65z"/></g>
+  <path d="M600 160v-78" stroke="#43352f" stroke-width="8"/><path d="M604 84q60 12 89 39-42 16-89 1z" fill="#e85b28"/>
+  <g fill="#242d37"><circle cx="210" cy="610" r="30"/><circle cx="1000" cy="610" r="30"/><path d="M180 650h60l-7-38h-46zM970 650h60l-7-38h-46z"/></g>
+</svg>
