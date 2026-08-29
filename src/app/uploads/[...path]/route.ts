@@ -2,14 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
+const LOCAL_UPLOADS_DIR = "uploads";
+
+function getLocalFilePath(parts: string[]): string {
+  const configured = process.env.STORAGE_LOCAL_PATH;
+  if (!configured || configured === "./uploads" || configured === "uploads") {
+    return path.join(process.cwd(), LOCAL_UPLOADS_DIR, ...parts);
+  }
+  return path.join(path.resolve(/* turbopackIgnore: true */ configured), ...parts);
+}
+
 export async function GET(request: NextRequest) {
+  if ((process.env.STORAGE_PROVIDER ?? "local") !== "local") {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
   const url = new URL(request.url);
   const parts = url.pathname.replace(/^\/uploads\//, "").split("/");
   if (parts.some((p) => p === ".." || !p)) {
     return new NextResponse("Not found", { status: 404 });
   }
-  const base = process.env.STORAGE_LOCAL_PATH ?? "./uploads";
-  const filePath = path.join(path.resolve(base), ...parts);
+
+  const filePath = getLocalFilePath(parts);
   try {
     const data = await readFile(filePath);
     const ext = path.extname(filePath).toLowerCase();

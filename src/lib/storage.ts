@@ -1,7 +1,3 @@
-import { mkdir, writeFile, unlink, stat } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
-
 export interface UploadResult {
   url: string;
   storageKey: string;
@@ -14,43 +10,6 @@ export interface StorageProvider {
   upload(file: Buffer, filename: string, mimeType: string): Promise<UploadResult>;
   delete(storageKey: string): Promise<void>;
   isConfigured(): boolean;
-}
-
-class LocalStorageProvider implements StorageProvider {
-  private basePath: string;
-  private publicPrefix = "/uploads";
-
-  constructor(basePath: string) {
-    this.basePath = path.resolve(basePath);
-  }
-
-  isConfigured(): boolean {
-    return Boolean(this.basePath);
-  }
-
-  async upload(file: Buffer, filename: string, mimeType: string): Promise<UploadResult> {
-    const ext = path.extname(filename) || mimeToExt(mimeType);
-    const storageKey = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${randomUUID()}${ext}`;
-    const fullPath = path.join(this.basePath, storageKey);
-    await mkdir(path.dirname(fullPath), { recursive: true });
-    await writeFile(fullPath, file);
-    return {
-      url: `${this.publicPrefix}/${storageKey}`,
-      storageKey,
-      filename,
-      mimeType,
-      size: file.length,
-    };
-  }
-
-  async delete(storageKey: string): Promise<void> {
-    const fullPath = path.join(this.basePath, storageKey);
-    try {
-      await unlink(fullPath);
-    } catch {
-      // file may already be removed
-    }
-  }
 }
 
 class S3StorageProvider implements StorageProvider {
@@ -101,25 +60,27 @@ export class StorageNotConfiguredError extends Error {
   }
 }
 
-export function getStorageProvider(): StorageProvider {
+export async function getStorageProvider(): Promise<StorageProvider> {
   const provider = process.env.STORAGE_PROVIDER ?? "local";
   switch (provider) {
     case "s3":
       return new S3StorageProvider();
     case "cloudinary":
       return new CloudinaryStorageProvider();
-    default:
-      return new LocalStorageProvider(process.env.STORAGE_LOCAL_PATH ?? "./uploads");
+    default: {
+      const { createLocalStorageProvider } = await import("./storage-local");
+      return createLocalStorageProvider();
+    }
   }
 }
 
-export function getStorageStatus(): { provider: string; configured: boolean; message?: string } {
+export async function getStorageStatus(): Promise<{ provider: string; configured: boolean; message?: string }> {
   const provider = process.env.STORAGE_PROVIDER ?? "local";
-  const storage = getStorageProvider();
-  const configured = storage.isConfigured();
   if (provider === "local") {
     return { provider: "local", configured: true, message: "Local filesystem storage active" };
   }
+  const storage = await getStorageProvider();
+  const configured = storage.isConfigured();
   if (!configured) {
     return {
       provider,
@@ -128,17 +89,6 @@ export function getStorageStatus(): { provider: string; configured: boolean; mes
     };
   }
   return { provider, configured: true };
-}
-
-function mimeToExt(mime: string): string {
-  const map: Record<string, string> = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-    "image/gif": ".gif",
-    "image/svg+xml": ".svg",
-  };
-  return map[mime] ?? "";
 }
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
@@ -150,21 +100,5 @@ export function validateUpload(file: Buffer, mimeType: string): void {
   }
   if (file.length > MAX_SIZE) {
     throw new Error("फ़ाइल 5MB से छोटी होनी चाहिए");
-  }
-}
-
-export async function getLocalUploadPath(): Promise<string> {
-  const base = process.env.STORAGE_LOCAL_PATH ?? "./uploads";
-  await mkdir(path.resolve(base), { recursive: true });
-  return path.resolve(base);
-}
-
-export async function localFileExists(storageKey: string): Promise<boolean> {
-  const base = process.env.STORAGE_LOCAL_PATH ?? "./uploads";
-  try {
-    await stat(path.join(path.resolve(base), storageKey));
-    return true;
-  } catch {
-    return false;
   }
 }

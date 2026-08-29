@@ -31,7 +31,7 @@ export async function DELETE(_request: NextRequest, ctx: Ctx) {
 
     if (media.storageKey) {
       try {
-        const storage = getStorageProvider();
+        const storage = await getStorageProvider();
         if (storage.isConfigured()) await storage.delete(media.storageKey);
       } catch {
         // storage delete failure should not block DB cleanup

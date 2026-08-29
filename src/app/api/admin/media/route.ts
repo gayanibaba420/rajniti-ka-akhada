@@ -8,7 +8,7 @@ export async function GET() {
     const session = await getSession();
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
     const media = await prisma.media.findMany({ orderBy: { createdAt: "desc" } });
-    return jsonOk({ media, storage: getStorageStatus() });
+    return jsonOk({ media, storage: await getStorageStatus() });
   } catch (error) {
     return handleApiError(error);
   }
@@ -19,9 +19,9 @@ export async function POST(request: Request) {
     const session = await getSession();
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
 
-    const storage = getStorageProvider();
+    const storage = await getStorageProvider();
     if (!storage.isConfigured()) {
-      return jsonError(getStorageStatus().message ?? "Storage not configured", 503);
+      return jsonError((await getStorageStatus()).message ?? "Storage not configured", 503);
     }
 
     const form = await request.formData();
