@@ -1,6 +1,6 @@
 export type { PublicArticle as Article, PublicCategory as Category } from "./types";
 
-const PRODUCTION_SITE_URL = "https://rajnitikaakhada.in";
+const PRODUCTION_SITE_URL = "https://www.rajnitikaakhada.com";
 const LOCAL_SITE_URL = "http://localhost:43127";
 
 export function getSiteUrl(): string {

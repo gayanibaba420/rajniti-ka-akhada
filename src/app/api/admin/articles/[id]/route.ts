@@ -6,6 +6,7 @@ import { computeReadTimeMinutes } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
+import { tryPublishArticleToFacebook } from "@/lib/facebook";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -113,7 +114,18 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       revalidatePublicPages({ slug: existing.slug, categorySlug: category?.slug });
     }
 
-    return jsonOk({ article });
+    let facebookPublish = null;
+    const becamePublished = status === "PUBLISHED" && existing.status !== "PUBLISHED";
+    if (becamePublished) {
+      facebookPublish = await tryPublishArticleToFacebook(article.id);
+    }
+
+    const full = await prisma.article.findUnique({
+      where: { id: article.id },
+      include: { category: true, author: true, featuredImage: true, tags: { include: { tag: true } } },
+    });
+
+    return jsonOk({ article: full ?? article, facebookPublish });
   } catch (error) {
     return handleApiError(error);
   }

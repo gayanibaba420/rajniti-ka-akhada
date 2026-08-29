@@ -43,13 +43,13 @@ class CloudinaryStorageProvider implements StorageProvider {
   }
 
   async upload(_file: Buffer, _filename: string, _mimeType: string): Promise<UploadResult> {
-    throw new StorageNotConfiguredError(
-      "Cloudinary storage is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET."
-    );
+    const { createCloudinaryStorageProvider } = await import("./storage-cloudinary");
+    return createCloudinaryStorageProvider().upload(_file, _filename, _mimeType);
   }
 
-  async delete(_storageKey: string): Promise<void> {
-    throw new StorageNotConfiguredError("Cloudinary storage is not configured.");
+  async delete(storageKey: string): Promise<void> {
+    const { createCloudinaryStorageProvider } = await import("./storage-cloudinary");
+    return createCloudinaryStorageProvider().delete(storageKey);
   }
 }
 
@@ -61,7 +61,7 @@ export class StorageNotConfiguredError extends Error {
 }
 
 export async function getStorageProvider(): Promise<StorageProvider> {
-  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "s3" : "local");
+  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "cloudinary" : "local");
   switch (provider) {
     case "s3":
       return new S3StorageProvider();
@@ -77,7 +77,7 @@ export async function getStorageProvider(): Promise<StorageProvider> {
 }
 
 export async function getStorageStatus(): Promise<{ provider: string; configured: boolean; message?: string }> {
-  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "s3" : "local");
+  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "cloudinary" : "local");
   if (provider === "local") {
     if (process.env.VERCEL) {
       return {
@@ -100,7 +100,7 @@ export async function getStorageStatus(): Promise<{ provider: string; configured
   return { provider, configured: true };
 }
 
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
+const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
 const MAX_SIZE = 5 * 1024 * 1024;
 
 export function validateUpload(file: Buffer, mimeType: string): void {

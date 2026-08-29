@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BarChart3, BellRing, FilePenLine, ImageIcon, LayoutDashboard, LogOut, Menu, MessageSquare,
-  Plus, Search, Settings, ShieldCheck, Users, X,
+  Plus, Search, Send, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { AD_POSITION_LABELS, STATUS_LABELS, slugify, blocksToEditorText, editorTextToBlocks, type ContentBlock } from "@/lib/types";
 
@@ -20,6 +20,10 @@ type ArticleRow = {
   scheduledAt?: string | null; publishedAt?: string | null;
   category: { id: string; name: string }; author: { id: string; name: string };
   featuredImage?: { id: string; url: string; alt?: string | null } | null;
+  facebookPostId?: string | null;
+  facebookPublishStatus?: string | null;
+  facebookPublishedAt?: string | null;
+  facebookPublishError?: string | null;
   tags: Array<{ tag: { name: string } }>;
 };
 
@@ -28,7 +32,7 @@ type StorageStatus = { provider: string; configured: boolean; message?: string }
 
 const sections = [
   ["dashboard", "डैशबोर्ड", LayoutDashboard], ["posts", "पोस्ट", FilePenLine], ["media", "मीडिया", ImageIcon], ["breaking", "ब्रेकिंग", BellRing],
-  ["authors", "लेखक", Users], ["comments", "टिप्पणियां", MessageSquare], ["ads", "विज्ञापन", BarChart3], ["seo", "SEO", Search], ["settings", "सेटिंग्स", Settings],
+  ["authors", "लेखक", Users], ["comments", "टिप्पणियां", MessageSquare], ["ads", "विज्ञापन", BarChart3], ["seo", "SEO", Search], ["social", "सोशल मीडिया", Send], ["settings", "सेटिंग्स", Settings],
 ] as const;
 
 export default function AdminPage() {
@@ -85,6 +89,7 @@ export default function AdminPage() {
       case "comments": return <CommentsPanel flash={flash} />;
       case "ads": return <AdsPanel flash={flash} />;
       case "seo": return <SettingsPanel title="SEO नियंत्रण" keys={["site_name", "site_tagline", "site_description"]} flash={flash} />;
+      case "social": return <SocialMediaPanel flash={flash} />;
       case "settings": return <SettingsPanel title="पोर्टल सेटिंग्स" keys={["contact_email", "facebook_url", "youtube_url", "whatsapp_number"]} flash={flash} />;
       default: return <Dashboard analytics={analytics} articles={articles} create={() => setEditing("new")} openPosts={() => setActive("posts")} />;
     }
@@ -232,13 +237,26 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   const [featuredImagePreview, setFeaturedImagePreview] = useState<{ url: string; alt?: string | null } | null>(
     article?.featuredImage ? { url: article.featuredImage.url, alt: article.featuredImage.alt } : null
   );
+  const [featuredImageAlt, setFeaturedImageAlt] = useState(article?.featuredImage?.alt ?? "");
   const [featuredUrlInput, setFeaturedUrlInput] = useState("");
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [storage, setStorage] = useState<StorageStatus | null>(null);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [mediaPickerTarget, setMediaPickerTarget] = useState<"featured" | "content">("featured");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
+  const [facebookStatus, setFacebookStatus] = useState<string | null>(article?.facebookPublishStatus ?? null);
+  const [facebookPostId, setFacebookPostId] = useState<string | null>(article?.facebookPostId ?? null);
+  const [facebookError, setFacebookError] = useState<string | null>(article?.facebookPublishError ?? null);
+  const [retryingFacebook, setRetryingFacebook] = useState(false);
+  const [savedArticleId, setSavedArticleId] = useState<string | null>(article?.id ?? null);
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    };
+  }, [localPreviewUrl]);
 
   useEffect(() => {
     fetch("/api/admin/media")
@@ -258,9 +276,23 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
     if (mediaPickerTarget === "featured") {
       setFeaturedImageId(item.id);
       setFeaturedImagePreview({ url: item.url, alt: item.alt });
+      setFeaturedImageAlt(item.alt ?? "");
+      if (localPreviewUrl) {
+        URL.revokeObjectURL(localPreviewUrl);
+        setLocalPreviewUrl(null);
+      }
       return;
     }
     insertImageMarkdown(item.url, item.alt ?? "");
+  }
+
+  async function updateFeaturedAlt(mediaId: string, alt: string) {
+    await fetch(`/api/admin/media/${mediaId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alt }),
+    });
+    setFeaturedImagePreview((prev) => (prev ? { ...prev, alt } : prev));
   }
 
   function insertImageMarkdown(url: string, alt: string) {
@@ -301,15 +333,32 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   async function uploadFeatured(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreviewUrl(objectUrl);
+    setFeaturedImagePreview({ url: objectUrl, alt: featuredImageAlt || title || file.name });
+
+    if (!storage?.configured) {
+      setError("स्टोरेज कॉन्फ़िग नहीं — Vercel में STORAGE_PROVIDER=cloudinary सेट करें, या URL/लाइब्रेरी उपयोग करें");
+      e.target.value = "";
+      return;
+    }
+
     setUploadingFeatured(true);
     const form = new FormData();
     form.append("file", file);
+    if (featuredImageAlt.trim()) form.append("alt", featuredImageAlt.trim());
+    else if (title.trim()) form.append("alt", title.trim());
     const res = await fetch("/api/admin/media", { method: "POST", body: form });
     const data = await res.json();
     setUploadingFeatured(false);
     if (res.ok) {
       setFeaturedImageId(data.media.id);
       setFeaturedImagePreview({ url: data.media.url, alt: data.media.alt });
+      setFeaturedImageAlt(data.media.alt ?? "");
+      URL.revokeObjectURL(objectUrl);
+      setLocalPreviewUrl(null);
     } else {
       setError(data.error ?? "अपलोड विफल");
     }
@@ -334,6 +383,9 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
       if (!body.trim()) { setError("प्रकाशन के लिए मुख्य सामग्री आवश्यक है"); return; }
     }
     setSaving(true);
+    if (featuredImageId && featuredImageAlt.trim()) {
+      await updateFeaturedAlt(featuredImageId, featuredImageAlt.trim());
+    }
     const payload = {
       title, slug: slug || slugify(title), excerpt, content, highlight, location, status: nextStatus,
       categoryId, authorId, tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -346,13 +398,60 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
     });
     setSaving(false);
     if (res.ok) {
+      const data = await res.json();
+      const savedId = data.article?.id ?? article?.id ?? null;
+      if (savedId) setSavedArticleId(savedId);
+      if (data.facebookPublish) {
+        setFacebookStatus(data.facebookPublish.status ?? null);
+        setFacebookPostId(data.facebookPublish.postId ?? null);
+        setFacebookError(data.facebookPublish.error ?? null);
+      } else if (data.article) {
+        setFacebookStatus(data.article.facebookPublishStatus ?? null);
+        setFacebookPostId(data.article.facebookPostId ?? null);
+        setFacebookError(data.article.facebookPublishError ?? null);
+      }
       const label = STATUS_LABELS[nextStatus as keyof typeof STATUS_LABELS] ?? nextStatus;
-      onSaved(nextStatus === "PUBLISHED" ? "प्रकाशित — होमपेज पर दिखेगा" : `ड्राफ्ट सुरक्षित (${label})`);
+      let msg = nextStatus === "PUBLISHED" ? "प्रकाशित — होमपेज पर दिखेगा" : `ड्राफ्ट सुरक्षित (${label})`;
+      if (nextStatus === "PUBLISHED" && data.facebookPublish?.status === "SUCCESS") {
+        msg += " • ✓ Facebook Published";
+      } else if (nextStatus === "PUBLISHED" && data.facebookPublish?.status === "FAILED") {
+        msg += " • ✕ Facebook Failed";
+      }
+      onSaved(msg);
     } else {
       const d = await res.json();
       setError(d.error ?? "सुरक्षित नहीं हो सका");
     }
   }
+
+  async function retryFacebookPost() {
+    const id = savedArticleId ?? article?.id;
+    if (!id) return;
+    setRetryingFacebook(true);
+    const res = await fetch(`/api/admin/articles/${id}/facebook`, { method: "POST" });
+    const data = await res.json();
+    setRetryingFacebook(false);
+    if (res.ok && data.facebookPublish) {
+      setFacebookStatus(data.facebookPublish.status ?? null);
+      setFacebookPostId(data.facebookPublish.postId ?? data.article?.facebookPostId ?? null);
+      setFacebookError(data.facebookPublish.error ?? null);
+    } else {
+      setFacebookError(data.error ?? "Facebook retry failed");
+      setFacebookStatus("FAILED");
+    }
+  }
+
+  const displayPreviewUrl = featuredImagePreview?.url ?? null;
+  const displayAlt = featuredImageAlt || featuredImagePreview?.alt || title || "Featured image";
+  const facebookStatusLabel = facebookStatus === "SUCCESS"
+    ? "✓ Facebook Published"
+    : facebookStatus === "FAILED"
+      ? "✕ Facebook Failed"
+      : facebookStatus === "SKIPPED"
+        ? "— Facebook Skipped (auto-publish off)"
+        : facebookStatus === "PENDING"
+          ? "… Facebook Publishing"
+          : null;
 
   const statusBadgeClass =
     status === "PUBLISHED" ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200"
@@ -403,33 +502,68 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
         <div className="grid content-start gap-5">
           <div className="surface grid gap-4 rounded-xl p-5">
             <h2 className="font-black">फीचर्ड चित्र</h2>
-            {featuredImagePreview ? (
+            {displayPreviewUrl ? (
               <div className="relative aspect-video overflow-hidden rounded-lg">
-                <Image src={featuredImagePreview.url} alt={featuredImagePreview.alt ?? "Featured"} fill className="object-cover" unoptimized />
+                <Image src={displayPreviewUrl} alt={displayAlt} fill className="object-cover" unoptimized />
+                {uploadingFeatured && (
+                  <div className="absolute inset-0 grid place-items-center bg-black/40 text-sm font-bold text-white">अपलोड हो रहा है...</div>
+                )}
               </div>
             ) : (
-              <div className="flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900">
+              <label className="flex aspect-video cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900">
                 <ImageIcon className="text-neutral-400" size={32} />
-              </div>
+                <span className="muted mt-2 text-xs">गैलरी/फ़ाइल से चित्र चुनें</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadFeatured} disabled={uploadingFeatured} />
+              </label>
             )}
             <div className="flex flex-wrap gap-2">
-              {storage?.configured && (
-                <label className="btn btn-primary cursor-pointer text-xs">
-                  {uploadingFeatured ? "अपलोड..." : "अपलोड"}
-                  <input type="file" accept="image/*" className="hidden" onChange={uploadFeatured} disabled={uploadingFeatured} />
-                </label>
-              )}
+              <label className="btn btn-primary cursor-pointer text-xs">
+                {uploadingFeatured ? "अपलोड..." : "चित्र चुनें"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadFeatured} disabled={uploadingFeatured} />
+              </label>
               <button type="button" onClick={() => openMediaPicker("featured")} className="btn btn-ghost text-xs">लाइब्रेरी</button>
               {featuredImagePreview && (
-                <button type="button" onClick={() => { setFeaturedImageId(null); setFeaturedImagePreview(null); }} className="btn btn-ghost text-xs text-red-600">हटाएं</button>
+                <button type="button" onClick={() => {
+                  setFeaturedImageId(null);
+                  setFeaturedImagePreview(null);
+                  setFeaturedImageAlt("");
+                  if (localPreviewUrl) { URL.revokeObjectURL(localPreviewUrl); setLocalPreviewUrl(null); }
+                }} className="btn btn-ghost text-xs text-red-600">हटाएं</button>
               )}
             </div>
+            <label className="text-sm font-bold">
+              Alt टेक्स्ट (SEO)
+              <input
+                value={featuredImageAlt}
+                onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                onBlur={() => { if (featuredImageId && featuredImageAlt.trim()) void updateFeaturedAlt(featuredImageId, featuredImageAlt.trim()); }}
+                className="input mt-1 text-sm"
+                placeholder="चित्र का वर्णन..."
+              />
+            </label>
             <div className="flex gap-2">
               <input value={featuredUrlInput} onChange={(e) => setFeaturedUrlInput(e.target.value)} className="input flex-1 text-sm" placeholder="https://... चित्र URL" />
               <button type="button" onClick={setFeaturedFromUrl} className="btn btn-ghost text-xs whitespace-nowrap">URL सेट</button>
             </div>
-            <p className="muted text-xs">पूर्ण मीडिया प्रबंधन के लिए साइडबार में <strong>मीडिया</strong> अनुभाग खोलें</p>
+            <p className="muted text-xs">JPG, PNG, WebP • मोबाइल गैलरी और डेस्कटॉप अपलोड दोनों समर्थित</p>
           </div>
+          {(status === "PUBLISHED" || facebookStatusLabel) && (
+            <div className="surface grid gap-3 rounded-xl p-5">
+              <h2 className="font-black">Facebook प्रकाशन</h2>
+              {facebookStatusLabel && (
+                <p className={`text-sm font-bold ${facebookStatus === "SUCCESS" ? "text-green-700" : facebookStatus === "FAILED" ? "text-red-600" : "text-neutral-600"}`}>
+                  {facebookStatusLabel}
+                </p>
+              )}
+              {facebookPostId && <p className="muted text-xs break-all">Post ID: {facebookPostId}</p>}
+              {facebookError && <p className="text-xs text-red-600">{facebookError}</p>}
+              {status === "PUBLISHED" && (savedArticleId ?? article?.id) && (
+                <button type="button" disabled={retryingFacebook} onClick={retryFacebookPost} className="btn btn-ghost text-xs w-fit">
+                  {retryingFacebook ? "पुनः प्रयास..." : "Retry Facebook Post"}
+                </button>
+              )}
+            </div>
+          )}
           <div className="surface grid gap-4 rounded-xl p-5"><h2 className="font-black">प्रकाशन</h2>
             <label className="text-sm font-bold">स्थिति<select value={status} onChange={(e) => setStatus(e.target.value)} className="input mt-1">{Object.keys(STATUS_LABELS).map((s) => <option key={s} value={s}>{STATUS_LABELS[s as keyof typeof STATUS_LABELS]}</option>)}</select></label>
             {status === "SCHEDULED" && <label className="text-sm font-bold">निर्धारित समय<input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="input mt-1" /></label>}
@@ -484,7 +618,7 @@ function MediaManager({ flash }: { flash: (s: string) => void }) {
       <div><h1 className="text-2xl font-black">मीडिया लाइब्रेरी</h1><StorageBanner storage={storage} /></div>
       <div className="flex flex-wrap gap-2">
         {storage?.configured && (
-          <label className="btn btn-primary cursor-pointer"><Plus /> अपलोड<input onChange={upload} type="file" accept="image/*" className="hidden" /></label>
+          <label className="btn btn-primary cursor-pointer"><Plus /> अपलोड<input onChange={upload} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" /></label>
         )}
       </div>
     </div>
@@ -528,6 +662,71 @@ function AdsPanel({ flash }: { flash: (s: string) => void }) {
     setAds(ads.map((a) => a.id === id ? { ...a, enabled } : a)); flash("अपडेट");
   }
   return <div><h1 className="text-2xl font-black">विज्ञापन स्लॉट</h1><div className="surface mt-6 rounded-xl p-5">{ads.map((ad) => <div className="flex items-center justify-between gap-4 border-b py-4 last:border-0" style={{ borderColor: "var(--line)" }} key={ad.id}><div><strong>{ad.name}</strong><p className="muted text-xs">{AD_POSITION_LABELS[ad.position as keyof typeof AD_POSITION_LABELS] ?? ad.position}</p></div><button onClick={() => toggle(ad.id, !ad.enabled)} className={`btn ${ad.enabled ? "btn-primary" : "btn-ghost"} text-xs`}>{ad.enabled ? "सक्रिय" : "निष्क्रिय"}</button></div>)}</div></div>;
+}
+
+function SocialMediaPanel({ flash }: { flash: (s: string) => void }) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => setValues(d.settings ?? {}))
+      .catch(() => undefined);
+  }, []);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const settings = {
+      facebook_auto_publish: values.facebook_auto_publish === "true" ? "true" : "false",
+      facebook_url: values.facebook_url ?? "https://www.facebook.com/rajnitikaakhada",
+    };
+    const res = await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings }),
+    });
+    setSaving(false);
+    flash(res.ok ? "सोशल मीडिया सेटिंग्स सुरक्षित" : "त्रुटि");
+  }
+
+  const autoPublishOn = values.facebook_auto_publish === "true";
+
+  return (
+    <div>
+      <h1 className="text-2xl font-black">सोशल मीडिया</h1>
+      <p className="muted mt-1 text-sm">Facebook Page &quot;Rajniti Ka Akhada&quot; पर स्वचालित प्रकाशन</p>
+      <form onSubmit={save} className="surface mt-6 max-w-2xl rounded-xl p-5">
+        <div className="grid gap-5">
+          <label className="flex items-center justify-between gap-4 rounded-lg border p-4" style={{ borderColor: "var(--line)" }}>
+            <div>
+              <span className="font-bold">Facebook Auto Publish</span>
+              <p className="muted mt-1 text-xs">प्रकाशित होने पर स्वचालित रूप से Facebook Page पर पोस्ट करें</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={autoPublishOn}
+              onChange={(e) => setValues({ ...values, facebook_auto_publish: e.target.checked ? "true" : "false" })}
+              className="h-5 w-5"
+            />
+          </label>
+          <label className="text-sm font-bold">
+            Facebook Page URL
+            <input
+              className="input mt-2"
+              value={values.facebook_url ?? "https://www.facebook.com/rajnitikaakhada"}
+              onChange={(e) => setValues({ ...values, facebook_url: e.target.value })}
+            />
+          </label>
+          <p className="muted text-xs">
+            API टोकन केवल Vercel env vars में सेट करें (FACEBOOK_PAGE_ACCESS_TOKEN, FACEBOOK_PAGE_ID) — फ्रंटएंड में कभी नहीं।
+          </p>
+        </div>
+        <button type="submit" disabled={saving} className="btn btn-primary mt-6">{saving ? "सुरक्षित..." : "बदलाव सुरक्षित करें"}</button>
+      </form>
+    </div>
+  );
 }
 
 function SettingsPanel({ title, keys, flash }: { title: string; keys: string[]; flash: (s: string) => void }) {

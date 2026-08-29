@@ -3,6 +3,7 @@ import { getSiteUrl } from "./data";
 import { prisma } from "./db";
 import type { ContentBlock, PublicArticle, PublicCategory } from "./types";
 import { blocksToPlainText, computeReadTimeMinutes, formatReadTime } from "./types";
+import { tryPublishArticleToFacebook } from "./facebook";
 
 const DEFAULT_IMAGE = "/news-assembly.svg";
 const DEFAULT_IMAGE_ALT = "राजनीति का अखाड़ा";
@@ -282,6 +283,7 @@ export async function processScheduledPosts() {
       }),
       prisma.scheduledPost.update({ where: { id: item.id }, data: { processed: true } }),
     ]);
+    await tryPublishArticleToFacebook(item.articleId);
     published++;
   }
   return published;

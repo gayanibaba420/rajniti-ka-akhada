@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [],
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
+      { protocol: "https", hostname: "**.amazonaws.com", pathname: "/**" },
+    ],
     unoptimized: process.env.STORAGE_PROVIDER === "local",
   },
   async headers() {

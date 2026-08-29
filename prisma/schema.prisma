@@ -21,6 +21,13 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum FacebookPublishStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
 enum AdPosition {
   HEADER
   HOMEPAGE
@@ -103,9 +110,13 @@ model Article {
   author           Author         @relation(fields: [authorId], references: [id])
   createdById      String?
   createdBy        User?          @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  featuredImageId  String?
-  featuredImage    Media?         @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
-  tags             ArticleTag[]
+  featuredImageId         String?
+  featuredImage           Media?                 @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  facebookPostId          String?
+  facebookPublishStatus   FacebookPublishStatus?
+  facebookPublishedAt     DateTime?
+  facebookPublishError    String?
+  tags                    ArticleTag[]
   comments         Comment[]
   views            ArticleView[]
   breakingNews     BreakingNews?

@@ -11,6 +11,7 @@ import { computeReadTimeMinutes, slugify } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
+import { tryPublishArticleToFacebook } from "@/lib/facebook";
 
 export async function GET(request: NextRequest) {
   try {
@@ -115,7 +116,17 @@ export async function POST(request: NextRequest) {
     const category = await prisma.category.findUnique({ where: { id: article.categoryId }, select: { slug: true } });
     revalidatePublicPages({ slug: article.slug, categorySlug: category?.slug });
 
-    return jsonOk({ article }, 201);
+    let facebookPublish = null;
+    if (status === "PUBLISHED") {
+      facebookPublish = await tryPublishArticleToFacebook(article.id);
+    }
+
+    const full = await prisma.article.findUnique({
+      where: { id: article.id },
+      include: { category: true, author: true, featuredImage: true, tags: { include: { tag: true } } },
+    });
+
+    return jsonOk({ article: full ?? article, facebookPublish }, 201);
   } catch (error) {
     return handleApiError(error);
   }
