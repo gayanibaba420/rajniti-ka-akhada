@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   openGraph: { type: "website", locale: "hi_IN", siteName: siteConfig.name, title: siteConfig.name, description: siteConfig.description, images: ["/news-assembly.svg"] },
   twitter: { card: "summary_large_image", title: siteConfig.name, description: siteConfig.description, images: ["/news-assembly.svg"] },
   robots: { index: true, follow: true },
+  icons: { icon: "/news-assembly.svg" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

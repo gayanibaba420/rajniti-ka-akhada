@@ -66,7 +66,7 @@ export const articles: Article[] = seed.map((article, index) => ({
   readTime: `${3 + (index % 4)} मिनट`,
   views: 1250 + index * 317,
   content: body,
-  tags: [categories.find((c) => c.slug === article.category)?.name ?? "समाचार", article.location ?? "भारत", "ताज़ा खबर"],
+  tags: [...new Set([categories.find((c) => c.slug === article.category)?.name ?? "समाचार", article.location ?? "भारत", "ताज़ा खबर"])],
 }));
 
 export const getArticle = (slug: string) => articles.find((article) => article.slug === slug);
