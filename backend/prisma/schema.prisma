@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  EDITOR
+  AUTHOR
+}
+
+enum ArticleStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum FacebookPublishStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum AdPosition {
+  HEADER
+  HOMEPAGE
+  ARTICLE_TOP
+  ARTICLE_MIDDLE
+  ARTICLE_BOTTOM
+  SIDEBAR
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(AUTHOR)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  author       Author?
+  comments     Comment[]
+  articles     Article[] @relation("CreatedBy")
+}
+
+model Author {
+  id       String    @id @default(cuid())
+  userId   String?   @unique
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name     String
+  slug     String    @unique
+  bio      String?
+  avatar   String?
+  articles Article[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String
+  sortOrder   Int       @default(0)
+  articles    Article[]
+
+  @@index([slug])
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  slug     String       @unique
+  name     String
+  articles ArticleTag[]
+
+  @@index([slug])
+}
+
+model Article {
+  id               String         @id @default(cuid())
+  slug             String         @unique
+  title            String
+  excerpt          String
+  content          Json
+  highlight        String?
+  location         String?
+  status           ArticleStatus  @default(DRAFT)
+  featured         Boolean        @default(false)
+  breaking         Boolean        @default(false)
+  trending         Boolean        @default(false)
+  trendingOverride Int?
+  viewCount        Int            @default(0)
+  readTimeMinutes  Int            @default(3)
+  seoTitle         String?
+  seoDescription   String?
+  canonicalUrl     String?
+  publishedAt      DateTime?
+  scheduledAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  categoryId       String
+  category         Category       @relation(fields: [categoryId], references: [id])
+  authorId         String
+  author           Author         @relation(fields: [authorId], references: [id])
+  createdById      String?
+  createdBy        User?          @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  featuredImageId         String?
+  featuredImage           Media?                 @relation("FeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  facebookPostId          String?
+  facebookPublishStatus   FacebookPublishStatus?
+  facebookPublishedAt     DateTime?
+  facebookPublishError    String?
+  tags                    ArticleTag[]
+  comments         Comment[]
+  views            ArticleView[]
+  breakingNews     BreakingNews?
+  scheduledPost    ScheduledPost?
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([publishedAt])
+  @@index([viewCount])
+  @@index([status])
+  @@index([trending])
+  @@index([featured])
+  @@index([breaking])
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+model Media {
+  id         String    @id @default(cuid())
+  filename   String
+  url        String
+  mimeType   String
+  size       Int
+  alt        String?
+  caption    String?
+  credit     String?
+  storageKey String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  articles   Article[] @relation("FeaturedImage")
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String
+  approved    Boolean  @default(false)
+  authorName  String
+  authorEmail String?
+  articleId   String
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model BreakingNews {
+  id        String   @id @default(cuid())
+  title     String
+  link      String?
+  articleId String?  @unique
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+model ArticleView {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+  ipHash    String?
+
+  @@index([articleId])
+  @@index([viewedAt])
+  @@index([articleId, viewedAt])
+}
+
+model Advertisement {
+  id        String     @id @default(cuid())
+  name      String
+  position  AdPosition
+  code      String     @db.Text
+  enabled   Boolean    @default(true)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([position])
+  @@index([enabled])
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model ScheduledPost {
+  id        String   @id @default(cuid())
+  articleId String   @unique
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  publishAt DateTime
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([publishAt, processed])
+}

@@ -4,6 +4,12 @@
 # next
 /.next/
 /out/
+.vercel/
+
+# backend
+/backend/node_modules/
+/backend/dist/
+/backend/uploads/
 
 # production
 /build

@@ -1,13 +1,4 @@
-export type AdPosition =
-  | "HEADER"
-  | "HOMEPAGE"
-  | "ARTICLE_TOP"
-  | "ARTICLE_MIDDLE"
-  | "ARTICLE_BOTTOM"
-  | "SIDEBAR";
-
-export type ArticleStatus = "DRAFT" | "REVIEW" | "PUBLISHED" | "SCHEDULED" | "ARCHIVED";
-export type Role = "SUPER_ADMIN" | "EDITOR" | "AUTHOR";
+import type { ArticleStatus, AdPosition, Role } from "@prisma/client";
 
 export type ContentBlock =
   | { type: "paragraph"; text: string }

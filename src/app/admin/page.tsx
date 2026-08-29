@@ -9,6 +9,11 @@ import {
   Plus, Search, Send, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { AD_POSITION_LABELS, STATUS_LABELS, slugify, blocksToEditorText, editorTextToBlocks, type ContentBlock } from "@/lib/types";
+import { apiPath } from "@/lib/api-client";
+
+function adminFetch(input: string, init?: RequestInit) {
+  return fetch(apiPath(input), { ...init, credentials: "include" });
+}
 
 type User = { id: string; email: string; name: string; role: string };
 type Meta = { categories: Array<{ id: string; slug: string; name: string }>; authors: Array<{ id: string; name: string }>; tags: Array<{ id: string; name: string }> };
@@ -51,11 +56,11 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     try {
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      const me = await adminFetch("/api/auth/me").then((r) => r.json());
       if (!me.user) { router.push("/admin/login"); return; }
       setUser(me.user);
       const [metaRes, articlesRes, analyticsRes] = await Promise.all([
-        fetch("/api/admin/meta"), fetch("/api/admin/articles"), fetch("/api/admin/analytics"),
+        adminFetch("/api/admin/meta"), adminFetch("/api/admin/articles"), adminFetch("/api/admin/analytics"),
       ]);
       if (!metaRes.ok || !articlesRes.ok) throw new Error("DB");
       setMeta(await metaRes.json());
@@ -74,7 +79,7 @@ export default function AdminPage() {
   }, [load]);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await adminFetch("/api/auth/logout", { method: "POST" });
     router.push("/admin/login");
   }
 
@@ -127,7 +132,7 @@ function Dashboard({ analytics, articles, create, openPosts }: { analytics: Reco
 
 function Posts({ articles, edit, create, onRefresh, flash }: { articles: ArticleRow[]; edit: (a: ArticleRow) => void; create: () => void; onRefresh: () => void; flash: (s: string) => void }) {
   async function updateStatus(article: ArticleRow, status: string) {
-    const res = await fetch(`/api/admin/articles/${article.id}`, {
+    const res = await adminFetch(`/api/admin/articles/${article.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, title: article.title, slug: article.slug, excerpt: article.excerpt, categoryId: article.category.id, authorId: article.author.id, content: article.content }),
     });
@@ -162,7 +167,7 @@ function MediaPickerModal({ open, onClose, onSelect }: { open: boolean; onClose:
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/admin/media")
+    adminFetch("/api/admin/media")
       .then((r) => r.json())
       .then((d) => { setMedia(d.media ?? []); setStorage(d.storage ?? null); })
       .catch(() => undefined);
@@ -171,7 +176,7 @@ function MediaPickerModal({ open, onClose, onSelect }: { open: boolean; onClose:
   async function addFromUrl() {
     if (!urlInput.trim()) return;
     setAdding(true);
-    const res = await fetch("/api/admin/media", {
+    const res = await adminFetch("/api/admin/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: urlInput.trim() }),
@@ -259,7 +264,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   }, [localPreviewUrl]);
 
   useEffect(() => {
-    fetch("/api/admin/media")
+    adminFetch("/api/admin/media")
       .then((r) => r.json())
       .then((d) => setStorage(d.storage ?? null))
       .catch(() => undefined);
@@ -287,7 +292,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   }
 
   async function updateFeaturedAlt(mediaId: string, alt: string) {
-    await fetch(`/api/admin/media/${mediaId}`, {
+    await adminFetch(`/api/admin/media/${mediaId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ alt }),
@@ -315,7 +320,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   async function setFeaturedFromUrl() {
     const url = featuredUrlInput.trim();
     if (!url) return;
-    const res = await fetch("/api/admin/media", {
+    const res = await adminFetch("/api/admin/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
@@ -350,7 +355,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
     form.append("file", file);
     if (featuredImageAlt.trim()) form.append("alt", featuredImageAlt.trim());
     else if (title.trim()) form.append("alt", title.trim());
-    const res = await fetch("/api/admin/media", { method: "POST", body: form });
+    const res = await adminFetch("/api/admin/media", { method: "POST", body: form });
     const data = await res.json();
     setUploadingFeatured(false);
     if (res.ok) {
@@ -393,7 +398,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
       featuredImageId,
       scheduledAt: nextStatus === "SCHEDULED" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
     };
-    const res = await fetch(article ? `/api/admin/articles/${article.id}` : "/api/admin/articles", {
+    const res = await adminFetch(article ? `/api/admin/articles/${article.id}` : "/api/admin/articles", {
       method: article ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     setSaving(false);
@@ -428,7 +433,7 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
     const id = savedArticleId ?? article?.id;
     if (!id) return;
     setRetryingFacebook(true);
-    const res = await fetch(`/api/admin/articles/${id}/facebook`, { method: "POST" });
+    const res = await adminFetch(`/api/admin/articles/${id}/facebook`, { method: "POST" });
     const data = await res.json();
     setRetryingFacebook(false);
     if (res.ok && data.facebookPublish) {
@@ -591,11 +596,11 @@ function MediaManager({ flash }: { flash: (s: string) => void }) {
   const [storage, setStorage] = useState<StorageStatus | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [addingUrl, setAddingUrl] = useState(false);
-  useEffect(() => { fetch("/api/admin/media").then((r) => r.json()).then((d) => { setMedia(d.media ?? []); setStorage(d.storage); }).catch(() => undefined); }, []);
+  useEffect(() => { adminFetch("/api/admin/media").then((r) => r.json()).then((d) => { setMedia(d.media ?? []); setStorage(d.storage); }).catch(() => undefined); }, []);
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
     const form = new FormData(); form.append("file", file);
-    const res = await fetch("/api/admin/media", { method: "POST", body: form });
+    const res = await adminFetch("/api/admin/media", { method: "POST", body: form });
     const data = await res.json();
     if (res.ok) { setMedia([data.media, ...media]); flash("अपलोड सफल"); } else flash(data.error ?? "अपलोड विफल — credentials जांचें");
     e.target.value = "";
@@ -603,7 +608,7 @@ function MediaManager({ flash }: { flash: (s: string) => void }) {
   async function addFromUrl() {
     if (!urlInput.trim()) return;
     setAddingUrl(true);
-    const res = await fetch("/api/admin/media", {
+    const res = await adminFetch("/api/admin/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: urlInput.trim() }),
@@ -632,9 +637,9 @@ function MediaManager({ flash }: { flash: (s: string) => void }) {
 
 function BreakingManager({ flash }: { flash: (s: string) => void }) {
   const [items, setItems] = useState<Array<{ id: string; title: string; enabled: boolean; sortOrder: number }>>([]);
-  useEffect(() => { fetch("/api/admin/breaking").then((r) => r.json()).then((d) => setItems(d.items ?? [])); }, []);
+  useEffect(() => { adminFetch("/api/admin/breaking").then((r) => r.json()).then((d) => setItems(d.items ?? [])); }, []);
   async function toggle(id: string, enabled: boolean) {
-    await fetch(`/api/admin/breaking/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+    await adminFetch(`/api/admin/breaking/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
     setItems(items.map((i) => i.id === id ? { ...i, enabled } : i)); flash("अपडेट");
   }
   return <div><h1 className="text-2xl font-black">ब्रेकिंग न्यूज़</h1><div className="surface mt-6 rounded-xl p-5">{items.map((item) => <div className="flex items-center justify-between gap-4 border-b py-4 last:border-0" style={{ borderColor: "var(--line)" }} key={item.id}><strong>{item.title}</strong><button onClick={() => toggle(item.id, !item.enabled)} className={`btn ${item.enabled ? "btn-primary" : "btn-ghost"} text-xs`}>{item.enabled ? "सक्रिय" : "निष्क्रिय"}</button></div>)}</div></div>;
@@ -646,9 +651,9 @@ function AuthorsPanel({ meta, flash }: { meta: Meta; flash: (s: string) => void 
 
 function CommentsPanel({ flash }: { flash: (s: string) => void }) {
   const [comments, setComments] = useState<Array<{ id: string; content: string; authorName: string; approved: boolean; article: { title: string } }>>([]);
-  useEffect(() => { fetch("/api/admin/comments").then((r) => r.json()).then((d) => setComments(d.comments ?? [])); }, []);
+  useEffect(() => { adminFetch("/api/admin/comments").then((r) => r.json()).then((d) => setComments(d.comments ?? [])); }, []);
   async function moderate(id: string, approved: boolean) {
-    await fetch(`/api/admin/comments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approved }) });
+    await adminFetch(`/api/admin/comments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approved }) });
     setComments(comments.map((c) => c.id === id ? { ...c, approved } : c)); flash(approved ? "स्वीकृत" : "अस्वीकृत");
   }
   return <div><h1 className="text-2xl font-black">टिप्पणी मॉडरेशन</h1><div className="surface mt-6 rounded-xl p-5">{comments.map((c) => <div className="border-b py-4 last:border-0" style={{ borderColor: "var(--line)" }} key={c.id}><p className="font-bold">{c.authorName} — {c.article.title}</p><p className="mt-2">{c.content}</p><div className="mt-2 flex gap-2"><button onClick={() => moderate(c.id, true)} className="btn btn-primary text-xs">स्वीकृत</button><button onClick={() => moderate(c.id, false)} className="btn btn-ghost text-xs">अस्वीकृत</button></div></div>)}</div></div>;
@@ -656,9 +661,9 @@ function CommentsPanel({ flash }: { flash: (s: string) => void }) {
 
 function AdsPanel({ flash }: { flash: (s: string) => void }) {
   const [ads, setAds] = useState<Array<{ id: string; name: string; position: string; enabled: boolean }>>([]);
-  useEffect(() => { fetch("/api/admin/ads").then((r) => r.json()).then((d) => setAds(d.ads ?? [])); }, []);
+  useEffect(() => { adminFetch("/api/admin/ads").then((r) => r.json()).then((d) => setAds(d.ads ?? [])); }, []);
   async function toggle(id: string, enabled: boolean) {
-    await fetch(`/api/admin/ads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
+    await adminFetch(`/api/admin/ads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled }) });
     setAds(ads.map((a) => a.id === id ? { ...a, enabled } : a)); flash("अपडेट");
   }
   return <div><h1 className="text-2xl font-black">विज्ञापन स्लॉट</h1><div className="surface mt-6 rounded-xl p-5">{ads.map((ad) => <div className="flex items-center justify-between gap-4 border-b py-4 last:border-0" style={{ borderColor: "var(--line)" }} key={ad.id}><div><strong>{ad.name}</strong><p className="muted text-xs">{AD_POSITION_LABELS[ad.position as keyof typeof AD_POSITION_LABELS] ?? ad.position}</p></div><button onClick={() => toggle(ad.id, !ad.enabled)} className={`btn ${ad.enabled ? "btn-primary" : "btn-ghost"} text-xs`}>{ad.enabled ? "सक्रिय" : "निष्क्रिय"}</button></div>)}</div></div>;
@@ -669,7 +674,7 @@ function SocialMediaPanel({ flash }: { flash: (s: string) => void }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/settings")
+    adminFetch("/api/admin/settings")
       .then((r) => r.json())
       .then((d) => setValues(d.settings ?? {}))
       .catch(() => undefined);
@@ -682,7 +687,7 @@ function SocialMediaPanel({ flash }: { flash: (s: string) => void }) {
       facebook_auto_publish: values.facebook_auto_publish === "true" ? "true" : "false",
       facebook_url: values.facebook_url ?? "https://www.facebook.com/rajnitikaakhada",
     };
-    const res = await fetch("/api/admin/settings", {
+    const res = await adminFetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings }),
@@ -731,12 +736,12 @@ function SocialMediaPanel({ flash }: { flash: (s: string) => void }) {
 
 function SettingsPanel({ title, keys, flash }: { title: string; keys: string[]; flash: (s: string) => void }) {
   const [values, setValues] = useState<Record<string, string>>({});
-  useEffect(() => { fetch("/api/admin/settings").then((r) => r.json()).then((d) => setValues(d.settings ?? {})); }, []);
+  useEffect(() => { adminFetch("/api/admin/settings").then((r) => r.json()).then((d) => setValues(d.settings ?? {})); }, []);
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const settings: Record<string, string> = {};
     keys.forEach((k) => { settings[k] = values[k] ?? ""; });
-    const res = await fetch("/api/admin/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settings }) });
+    const res = await adminFetch("/api/admin/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settings }) });
     flash(res.ok ? "सुरक्षित" : "त्रुटि");
   }
   return <div><h1 className="text-2xl font-black">{title}</h1><form onSubmit={save} className="surface mt-6 max-w-2xl rounded-xl p-5"><div className="grid gap-5">{keys.map((key) => <label className="text-sm font-bold" key={key}>{key}<input className="input mt-2" value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} /></label>)}</div><button className="btn btn-primary mt-6">बदलाव सुरक्षित करें</button></form></div>;

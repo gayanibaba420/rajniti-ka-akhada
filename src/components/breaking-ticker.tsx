@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { apiPath } from "@/lib/api-client";
 
 interface BreakingItem {
   title: string;
@@ -13,7 +14,7 @@ export function BreakingTickerClient({ initialItems }: { initialItems: BreakingI
   const [items, setItems] = useState(initialItems);
 
   useEffect(() => {
-    fetch("/api/public/breaking")
+    fetch(apiPath("/api/public/breaking"))
       .then((r) => r.json())
       .then((data) => {
         if (data.items?.length) setItems(data.items);
