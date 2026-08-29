@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, Check, Facebook, Link2, MessageCircle, Send } from "lucide-react";
+import { Bookmark, Check, Link2, MessageCircle, Send, Share2 as Facebook } from "lucide-react";
 
 export function ShareActions({ title }: { title: string }) {
   const [saved, setSaved] = useState(false);

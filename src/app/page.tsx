@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Play, Radio } from "lucide-react";
 import { AdSlot } from "@/components/site-shell";
 import { SidebarList, StoryCard } from "@/components/story-card";
-import { articles, categories } from "@/lib/data";
+import { articles } from "@/lib/data";
 
 export default function Home() {
   const lead = articles[0];

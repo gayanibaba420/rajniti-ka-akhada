@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Menu, Moon, Search, Sun, X, Facebook, Instagram, Youtube } from "lucide-react";
+import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video as Youtube, X } from "lucide-react";
 import { articles, categories } from "@/lib/data";
 
 export function ThemeButton() {
@@ -11,7 +11,7 @@ export function ThemeButton() {
   useEffect(() => {
     const saved = localStorage.getItem("theme");
     const enabled = saved === "dark" || (!saved && matchMedia("(prefers-color-scheme: dark)").matches);
-    setDark(enabled);
+    requestAnimationFrame(() => setDark(enabled));
     document.documentElement.classList.toggle("dark", enabled);
   }, []);
   function toggle() {
