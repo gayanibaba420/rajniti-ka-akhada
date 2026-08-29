@@ -7,7 +7,8 @@ import { Comments, ShareActions } from "@/components/article-actions";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
-import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig, checkApiHealth } from "@/lib/articles";
+import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig } from "@/lib/articles";
+import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
 
@@ -62,7 +63,7 @@ function renderBlock(block: ContentBlock, index: number) {
 }
 
 export default async function ArticlePage({ params }: Props) {
-  const dbOk = await checkApiHealth();
+  const dbOk = await checkDbConnection();
   if (!dbOk) {
     return <div className="container-main py-20 text-center"><h1 className="text-2xl font-black">सेवा अस्थायी रूप से अनुपलब्ध</h1></div>;
   }
@@ -120,12 +121,12 @@ export default async function ArticlePage({ params }: Props) {
 }
 
 export async function generateStaticParams() {
+  if (!hasDatabaseUrl()) return [];
   try {
-    const ok = await checkApiHealth();
+    const ok = await checkDbConnection();
     if (!ok) return [];
-    const { getPublishedArticleSlugs } = await import("@/lib/articles");
-    const slugs = await getPublishedArticleSlugs();
-    return slugs.map((slug) => ({ slug }));
+    const rows = await prisma.article.findMany({ where: { status: "PUBLISHED" }, select: { slug: true } });
+    return rows.map((a) => ({ slug: a.slug }));
   } catch {
     return [];
   }

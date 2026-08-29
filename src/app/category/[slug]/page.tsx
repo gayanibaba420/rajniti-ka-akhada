@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
-import { getCategories, getCategoryBySlug, getPublishedArticles, getTrendingArticles, getCategoryArticleCount, checkApiHealth } from "@/lib/articles";
+import { getCategories, getCategoryBySlug, getPublishedArticles, getTrendingArticles } from "@/lib/articles";
+import { checkDbConnection, hasDatabaseUrl } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
-  const dbOk = await checkApiHealth();
+  const dbOk = await checkDbConnection();
   if (!dbOk) {
     return <div className="container-main py-20 text-center"><h1 className="text-2xl font-black">सेवा अस्थायी रूप से अनुपलब्ध</h1></div>;
   }
@@ -34,7 +35,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const [items, total, categories, trending] = await Promise.all([
     getPublishedArticles({ categorySlug: slug, skip: (current - 1) * pageSize, limit: pageSize }),
-    safeDbQuery(() => getCategoryArticleCount(slug), 0),
+    safeDbQuery(async () => {
+      const { prisma } = await import("@/lib/db");
+      return prisma.article.count({ where: { status: "PUBLISHED", category: { slug }, publishedAt: { lte: new Date() } } });
+    }, 0),
     getCategories(),
     getTrendingArticles(5),
   ]);
@@ -57,8 +61,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 }
 
 export async function generateStaticParams() {
+  if (!hasDatabaseUrl()) return [];
   try {
-    const ok = await checkApiHealth();
+    const ok = await checkDbConnection();
     if (!ok) return [];
     const categories = await getCategories();
     return categories.map((c) => ({ slug: c.slug }));

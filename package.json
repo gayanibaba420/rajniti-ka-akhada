@@ -4,26 +4,42 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:all": "concurrently \"npm run dev --prefix backend\" \"next dev\"",
-    "build": "next build",
-    "build:backend": "npm run build --prefix backend",
+    "build": "prisma generate && next build",
+    "build:vercel": "prisma generate && bash scripts/migrate-if-configured.sh && next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "prisma migrate dev && tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "cookie": "^2.0.1",
+    "jose": "^6.2.10",
     "lucide-react": "latest",
     "next": "latest",
+    "prisma": "^6.19.3",
     "react": "latest",
     "react-dom": "latest",
+    "tsx": "^4.23.12",
+    "uuid": "^14.0.2",
     "zod": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie": "^0.6.0",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "concurrently": "^9.1.2",
+    "@types/uuid": "^10.0.0",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "tailwindcss": "latest",

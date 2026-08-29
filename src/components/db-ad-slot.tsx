@@ -1,4 +1,4 @@
-import type { AdPosition } from "@/lib/types";
+import type { AdPosition } from "@prisma/client";
 import { getActiveAds } from "@/lib/articles";
 import { safeDbQuery } from "@/lib/public-data";
 

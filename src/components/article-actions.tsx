@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Bookmark, Check, Link2, MessageCircle, Send, Share2 as Facebook } from "lucide-react";
-import { apiPath } from "@/lib/api-client";
 
 export function ShareActions({ title }: { title: string }) {
   const [saved, setSaved] = useState(false);
@@ -24,7 +23,7 @@ export function Comments({ articleSlug }: { articleSlug: string }) {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    fetch(apiPath(`/api/public/comments?slug=${encodeURIComponent(articleSlug)}`))
+    fetch(`/api/public/comments?slug=${encodeURIComponent(articleSlug)}`)
       .then((r) => r.json())
       .then((data) => setComments(data.comments ?? []))
       .catch(() => undefined);
@@ -34,7 +33,7 @@ export function Comments({ articleSlug }: { articleSlug: string }) {
     e.preventDefault();
     const clean = value.replace(/<[^>]*>/g, "").trim().slice(0, 500);
     if (!clean || !name.trim()) return;
-    const res = await fetch(apiPath("/api/public/comments"), {
+    const res = await fetch("/api/public/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug: articleSlug, authorName: name.trim(), content: clean }),

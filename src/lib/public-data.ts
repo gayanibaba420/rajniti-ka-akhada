@@ -1,17 +1,24 @@
-import { getPublicSiteConfig as fetchSiteConfig, checkApiHealth } from "./api-client";
+import { getSiteConfig } from "./articles";
 import { siteConfig as fallbackConfig } from "./data";
+import { checkDbConnection } from "./db";
 
 export async function getPublicSiteConfig() {
   try {
-    const ok = await checkApiHealth();
+    const ok = await checkDbConnection();
     if (!ok) return fallbackConfig;
-    return await fetchSiteConfig();
+    return await getSiteConfig();
   } catch {
     return fallbackConfig;
   }
 }
 
 export async function safeDbQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  const { safeApiQuery } = await import("./api-client");
-  return safeApiQuery(fn, fallback);
+  try {
+    const ok = await checkDbConnection();
+    if (!ok) return fallback;
+    return await fn();
+  } catch (error) {
+    console.error("[db-query]", error);
+    return fallback;
+  }
 }

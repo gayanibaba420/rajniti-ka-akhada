@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { StoryCard } from "@/components/story-card";
-import { getCategories, searchArticles, checkApiHealth } from "@/lib/articles";
+import { getCategories, searchArticles } from "@/lib/articles";
+import { checkDbConnection } from "@/lib/db";
 
 export const metadata = { title: "खोजें", robots: { index: false, follow: true } };
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
-  const dbOk = await checkApiHealth();
+  const dbOk = await checkDbConnection();
   const { q = "", page: rawPage } = await searchParams;
   const page = Math.max(1, Number(rawPage) || 1);
   const clean = q.trim().slice(0, 80);

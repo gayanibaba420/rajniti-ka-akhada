@@ -3,13 +3,14 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Play, Radio } from "lucide-react";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
-import { getCategories, getPublishedArticles, getTrendingArticles, checkApiHealth } from "@/lib/articles";
+import { getCategories, getPublishedArticles, getTrendingArticles } from "@/lib/articles";
+import { checkDbConnection } from "@/lib/db";
 import { safeDbQuery } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const dbOk = await checkApiHealth();
+  const dbOk = await checkDbConnection();
   if (!dbOk) {
     return (
       <div className="container-main py-20 text-center">
