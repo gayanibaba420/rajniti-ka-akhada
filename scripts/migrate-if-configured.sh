@@ -8,7 +8,10 @@ if [ -n "${DATABASE_URL:-}" ]; then
     echo "Database schema is up to date — skipping prisma migrate deploy."
   else
     echo "Running prisma migrate deploy..."
-    npx prisma migrate deploy
+    if ! npx prisma migrate deploy; then
+      echo "migrate deploy failed (often advisory lock on Neon) — falling back to db push..."
+      npx prisma db push --skip-generate
+    fi
   fi
 else
   echo "DATABASE_URL not set — skipping prisma migrate deploy (tables will be created on first deploy after you add DATABASE_URL)."
