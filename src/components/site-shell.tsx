@@ -1,11 +1,43 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video as Youtube, X } from "lucide-react";
+import type { SiteConfig } from "@/lib/data";
 import type { PublicCategory } from "@/lib/types";
 import { BreakingTickerClient } from "./breaking-ticker";
+
+function SiteLogoMark({ name, logo }: { name: string; logo: string }) {
+  const initial = name.trim().charAt(0) || "र";
+  if (logo) {
+    return (
+      <span className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-[#e8a526] ring-offset-2">
+        <Image src={logo} alt={`${name} लोगो`} fill className="object-cover" sizes="44px" unoptimized />
+      </span>
+    );
+  }
+  return (
+    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#a71d2a] text-2xl font-black text-white ring-2 ring-[#e8a526] ring-offset-2">
+      {initial}
+    </span>
+  );
+}
+
+function SiteBrandTitle({ name }: { name: string }) {
+  const parts = name.split(/\s+/);
+  if (parts.length >= 2) {
+    const last = parts.pop()!;
+    const lead = parts.join(" ");
+    return (
+      <div className="text-xl font-black tracking-tight sm:text-3xl">
+        {lead} <span className="brand">{last}</span>
+      </div>
+    );
+  }
+  return <div className="text-xl font-black tracking-tight sm:text-3xl">{name}</div>;
+}
 
 export function ThemeButton() {
   const [dark, setDark] = useState(false);
@@ -63,9 +95,11 @@ export function SearchOverlay({ open, close }: { open: boolean; close: () => voi
 }
 
 export function SiteHeader({
+  site,
   categories,
   breakingItems,
 }: {
+  site: SiteConfig;
   categories: PublicCategory[];
   breakingItems: Array<{ title: string; slug: string | null; link: string }>;
 }) {
@@ -78,15 +112,23 @@ export function SiteHeader({
   );
   if (pathname.startsWith("/admin")) return null;
 
+  const topBarRight = site.headerNotice || "ई-पेपर   |   लाइव टीवी";
+
   return (
     <>
       <a href="#main-content" className="fixed left-3 top-[-100px] z-[200] bg-white p-3 text-black focus:top-3">मुख्य सामग्री पर जाएं</a>
-      <div className="bg-[#181818] py-2 text-xs text-white"><div className="container-main flex justify-between"><span>{dateStr}</span><span className="hidden sm:inline">ई-पेपर &nbsp; | &nbsp; लाइव टीवी</span></div></div>
+      <div className="bg-[#181818] py-2 text-xs text-white"><div className="container-main flex justify-between gap-4"><span>{dateStr}</span><span className="hidden truncate sm:inline">{topBarRight}</span></div></div>
       <header className="surface sticky top-0 z-50 border-x-0 shadow-sm">
         <div className="container-main flex min-h-20 items-center justify-between gap-3 py-3">
           <button onClick={() => setMenu(!menu)} className="btn btn-ghost !p-2.5 lg:hidden" aria-label="मेन्यू खोलें"><Menu size={20} /></button>
-          <Link href="/" className="group leading-none" aria-label="राजनीति का अखाड़ा होम">
-            <div className="flex items-center gap-2"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#a71d2a] text-2xl font-black text-white ring-2 ring-[#e8a526] ring-offset-2">रा</span><div><div className="text-xl font-black tracking-tight sm:text-3xl">राजनीति का <span className="brand">अखाड़ा</span></div><div className="muted mt-1 text-[10px] font-bold tracking-[.15em] sm:text-xs">हिंदी समाचार • निष्पक्ष विचार</div></div></div>
+          <Link href="/" className="group min-w-0 leading-none" aria-label={`${site.name} होम`}>
+            <div className="flex items-center gap-2">
+              <SiteLogoMark name={site.name} logo={site.logo} />
+              <div className="min-w-0">
+                <SiteBrandTitle name={site.name} />
+                <div className="muted mt-1 truncate text-[10px] font-bold tracking-[.15em] sm:text-xs">{site.tagline}</div>
+              </div>
+            </div>
           </Link>
           <div className="flex items-center gap-2"><button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button><ThemeButton /></div>
         </div>
@@ -99,10 +141,33 @@ export function SiteHeader({
   );
 }
 
-export function SiteFooter() {
+export function SiteFooter({ site }: { site: SiteConfig }) {
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
-  return <footer className="mt-16 bg-[#151515] text-white"><div className="container-main grid gap-10 py-12 md:grid-cols-4"><div className="md:col-span-2"><h2 className="text-2xl font-black">राजनीति का <span className="text-[#ef4050]">अखाड़ा</span></h2><p className="mt-3 max-w-lg leading-7 text-neutral-400">हिंदी समाचार • निष्पक्ष विचार। हरियाणा और हिसार की स्थानीय आवाज़ से लेकर देश-दुनिया तक, तथ्य पहले।</p><div className="mt-5 flex gap-3"><a href="https://facebook.com" aria-label="Facebook"><Facebook /></a><a href="https://instagram.com" aria-label="Instagram"><Instagram /></a><a href="https://youtube.com" aria-label="YouTube"><Youtube /></a></div></div><div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div><div><h3 className="font-bold text-[#e8a526]">स्थानीय कवरेज</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/category/hisar">हिसार शहर</Link><Link href="/category/haryana">हरियाणा</Link><Link href="/category/business">मंडी भाव</Link><Link href="/category/education">शिक्षा व रोजगार</Link></div></div></div><div className="border-t border-neutral-800 py-5 text-center text-xs text-neutral-500">© 2026 राजनीति का अखाड़ा • सर्वाधिकार सुरक्षित</div></footer>;
+
+  const contactBits = [site.email, site.phone].filter(Boolean);
+
+  return (
+    <footer className="mt-16 bg-[#151515] text-white">
+      <div className="container-main grid gap-10 py-12 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <h2 className="text-2xl font-black"><SiteBrandTitle name={site.name} /></h2>
+          <p className="mt-3 max-w-lg leading-7 text-neutral-400">{site.tagline}। {site.description}</p>
+          {contactBits.length > 0 && (
+            <p className="mt-3 text-sm text-neutral-400">
+              {site.email && <>ईमेल: <a href={`mailto:${site.email}`} className="text-[#e8a526] hover:underline">{site.email}</a></>}
+              {site.email && site.phone && " • "}
+              {site.phone && <>फ़ोन: <a href={`tel:${site.phone.replace(/\s+/g, "")}`} className="text-[#e8a526] hover:underline">{site.phone}</a></>}
+            </p>
+          )}
+          <div className="mt-5 flex gap-3"><a href="https://facebook.com" aria-label="Facebook"><Facebook /></a><a href="https://instagram.com" aria-label="Instagram"><Instagram /></a><a href="https://youtube.com" aria-label="YouTube"><Youtube /></a></div>
+        </div>
+        <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
+        <div><h3 className="font-bold text-[#e8a526]">स्थानीय कवरेज</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/category/hisar">हिसार शहर</Link><Link href="/category/haryana">हरियाणा</Link><Link href="/category/business">मंडी भाव</Link><Link href="/category/education">शिक्षा व रोजगार</Link></div></div>
+      </div>
+      <div className="border-t border-neutral-800 py-5 text-center text-xs text-neutral-500">© {new Date().getFullYear()} {site.name} • सर्वाधिकार सुरक्षित</div>
+    </footer>
+  );
 }
 
 export function AdSlot({ label = "विज्ञापन" }: { label?: string }) {

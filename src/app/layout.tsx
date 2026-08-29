@@ -2,23 +2,46 @@ import type { Metadata } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
-import { getSiteUrl } from "@/lib/data";
+import { getSiteUrl, type SiteConfig } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import "./globals.css";
 
 const noto = Noto_Sans_Devanagari({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-noto", weight: ["400", "500", "600", "700", "800", "900"] });
 
+function absoluteAssetUrl(baseUrl: string, path: string): string {
+  if (!path) return `${baseUrl}/news-assembly.svg`;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getPublicSiteConfig();
+  const ogImage = absoluteAssetUrl(config.url, config.logo || "/news-assembly.svg");
+  const favicon = config.favicon || "/news-assembly.svg";
+
   return {
     metadataBase: new URL(getSiteUrl()),
     title: { default: `${config.name} | ${config.tagline}`, template: `%s | ${config.name}` },
     description: config.description,
+    keywords: config.seoKeywords ? config.seoKeywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
     alternates: { canonical: "/" },
-    openGraph: { type: "website", locale: "hi_IN", siteName: config.name, title: config.name, description: config.description, images: ["/news-assembly.svg"] },
-    twitter: { card: "summary_large_image", title: config.name, description: config.description, images: ["/news-assembly.svg"] },
+    openGraph: {
+      type: "website",
+      locale: "hi_IN",
+      siteName: config.name,
+      title: config.name,
+      description: config.description,
+      images: [ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: config.name,
+      description: config.description,
+      images: [ogImage],
+    },
     robots: { index: true, follow: true },
-    icons: { icon: "/news-assembly.svg" },
+    icons: { icon: favicon },
+    ...(config.gscVerification ? { verification: { google: config.gscVerification } } : {}),
   };
 }
 
@@ -28,17 +51,23 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     safeDbQuery(() => getCategories(), []),
     safeDbQuery(() => getBreakingNewsItems(), []),
   ]);
-  const site = config;
-  const organization = { "@context": "https://schema.org", "@type": "NewsMediaOrganization", name: site.name, url: site.url, logo: `${site.url}/news-assembly.svg` };
+  const site: SiteConfig = config;
+  const organization = {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    name: site.name,
+    url: site.url,
+    logo: absoluteAssetUrl(site.url, site.logo || "/news-assembly.svg"),
+  };
 
   return (
     <html lang="hi" suppressHydrationWarning>
       <body className={noto.variable}>
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, "\\u003c") }} />
-        <SiteHeader categories={categories} breakingItems={breaking} />
+        <SiteHeader site={site} categories={categories} breakingItems={breaking} />
         <main id="main-content">{children}</main>
-        <SiteFooter />
+        <SiteFooter site={site} />
       </body>
     </html>
   );

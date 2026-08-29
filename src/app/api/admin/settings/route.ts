@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
@@ -25,6 +26,7 @@ export async function PUT(request: NextRequest) {
         prisma.siteSetting.upsert({ where: { key }, create: { key, value }, update: { value } })
       )
     );
+    revalidatePath("/", "layout");
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);
