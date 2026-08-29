@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getStorageProvider, getStorageStatus, validateUpload } from "@/lib/storage";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
+import { mediaUrlSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
@@ -19,9 +20,30 @@ export async function POST(request: Request) {
     const session = await getSession();
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
 
+    const contentType = request.headers.get("content-type") ?? "";
+
+    // Register an external image URL (works without cloud storage credentials)
+    if (contentType.includes("application/json")) {
+      const input = mediaUrlSchema.parse(await request.json());
+      const filename = input.filename ?? input.url.split("/").pop()?.split("?")[0] ?? "external-image";
+      const media = await prisma.media.create({
+        data: {
+          filename,
+          url: input.url,
+          mimeType: "image/jpeg",
+          size: 0,
+          alt: input.alt ?? "",
+        },
+      });
+      return jsonOk({ media }, 201);
+    }
+
     const storage = await getStorageProvider();
     if (!storage.isConfigured()) {
-      return jsonError((await getStorageStatus()).message ?? "Storage not configured", 503);
+      return jsonError(
+        `${(await getStorageStatus()).message ?? "Storage not configured"} — बाहरी URL से जोड़ने के लिए JSON POST { url } का उपयोग करें`,
+        503
+      );
     }
 
     const form = await request.formData();

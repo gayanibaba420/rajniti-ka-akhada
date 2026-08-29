@@ -50,6 +50,12 @@ export const mediaUpdateSchema = z.object({
   credit: z.string().optional(),
 });
 
+export const mediaUrlSchema = z.object({
+  url: z.string().url(),
+  alt: z.string().optional(),
+  filename: z.string().optional(),
+});
+
 export const siteSettingSchema = z.object({
   settings: z.record(z.string(), z.string()),
 });

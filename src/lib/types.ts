@@ -85,6 +85,55 @@ export function plainTextToBlocks(paragraphs: string[]): ContentBlock[] {
   return paragraphs.map((text) => ({ type: "paragraph" as const, text }));
 }
 
+const IMAGE_LINE = /^!\[([^\]|]*)(?:\|([^\]]*))?\]\(([^)]+)\)$/;
+
+/** Serialize content blocks to the admin editor textarea format. */
+export function blocksToEditorText(blocks: ContentBlock[]): string {
+  return blocks
+    .map((block) => {
+      switch (block.type) {
+        case "heading":
+          return `${"#".repeat(block.level)} ${block.text}`;
+        case "quote":
+          return `> ${block.text}`;
+        case "image": {
+          const alt = block.alt ?? "";
+          const caption = block.caption ?? "";
+          return caption ? `![${alt}|${caption}](${block.url})` : `![${alt}](${block.url})`;
+        }
+        case "list":
+          return block.items.map((item) => (block.ordered ? `1. ${item}` : `- ${item}`)).join("\n");
+        case "embed":
+          return `[embed](${block.url})`;
+        default:
+          return block.text;
+      }
+    })
+    .join("\n\n");
+}
+
+/** Parse admin editor textarea text into content blocks (supports ## headings, > quotes, ![alt](url) images). */
+export function editorTextToBlocks(text: string): ContentBlock[] {
+  return text
+    .split("\n\n")
+    .filter(Boolean)
+    .map((line) => {
+      const imageMatch = line.match(IMAGE_LINE);
+      if (imageMatch) {
+        return {
+          type: "image" as const,
+          url: imageMatch[3],
+          alt: imageMatch[1] || undefined,
+          caption: imageMatch[2] || undefined,
+        };
+      }
+      if (line.startsWith("### ")) return { type: "heading", level: 3 as const, text: line.slice(4) };
+      if (line.startsWith("## ")) return { type: "heading", level: 2 as const, text: line.slice(3) };
+      if (line.startsWith("> ")) return { type: "quote", text: line.slice(2) };
+      return { type: "paragraph", text: line };
+    });
+}
+
 export function computeReadTimeMinutes(blocks: ContentBlock[]): number {
   const text = blocksToPlainText(blocks).join(" ");
   const words = text.split(/\s+/).filter(Boolean).length;
