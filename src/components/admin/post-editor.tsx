@@ -405,7 +405,7 @@ export function PostEditor({
               <input type="checkbox" checked={breaking} onChange={(e) => setBreaking(e.target.checked)} /> ब्रेकिंग
             </label>
             <label className="flex items-center gap-2 text-sm font-bold">
-              <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} /> फीचर्ड
+              <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} /> संपादक की पसंद
             </label>
             <label className="flex items-center gap-2 text-sm font-bold">
               <input type="checkbox" checked={trending} onChange={(e) => setTrending(e.target.checked)} /> ट्रेंडिंग

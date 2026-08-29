@@ -3,7 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, Eye, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
-import { Comments, ShareActions } from "@/components/article-actions";
+import { Comments, PrintButton, ShareActions } from "@/components/article-actions";
+import { AuthorLink } from "@/components/article-badges";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
@@ -11,6 +12,7 @@ import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticl
 import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
+import { formatHindiDate, formatHindiDateTime } from "@/lib/types";
 import { toVideoEmbedUrl } from "@/lib/video-url";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -85,9 +87,12 @@ export default async function ArticlePage({ params }: Props) {
   const schema = { "@context": "https://schema.org", "@type": "NewsArticle", headline: article.title, description: article.excerpt, image: [`${config.url}${article.image.startsWith("http") ? article.image : article.image}`], datePublished: article.publishedAt, dateModified: article.publishedAt, author: { "@type": "Person", name: article.author }, publisher: { "@type": "NewsMediaOrganization", name: config.name }, mainEntityOfPage: url };
   const breadcrumb = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "होम", item: config.url }, { "@type": "ListItem", position: 2, name: article.categoryName, item: `${config.url}/category/${article.category}` }, { "@type": "ListItem", position: 3, name: article.title, item: url }] };
   const blocks = article.contentBlocks ?? [];
+  const showUpdated =
+    article.updatedAt &&
+    new Date(article.updatedAt).getTime() > new Date(article.publishedAt).getTime() + 60_000;
 
   return (
-    <div className="container-main py-7">
+    <div className="container-main py-7 print-container">
       <ViewTracker slug={slug} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb).replace(/</g, "\\u003c") }} />
@@ -98,8 +103,20 @@ export default async function ArticlePage({ params }: Props) {
           <span className="mt-4 inline-block rounded-md bg-[#a71d2a] px-3 py-1.5 text-sm font-black text-white">{article.categoryName}</span>
           <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">{article.title}</h1>
           <p className="muted mt-4 border-l-4 border-[var(--accent)] pl-4 text-lg leading-8">{article.excerpt}</p>
-          <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm" style={{ borderColor: "var(--line)" }}><strong className="text-[var(--foreground)]">{article.author}</strong><span className="flex items-center gap-1"><Clock size={15} />{new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(article.publishedAt))}</span><span className="flex items-center gap-1"><Eye size={15} />{article.views.toLocaleString("hi-IN")}</span>{article.location && <span className="flex items-center gap-1"><MapPin size={15} />{article.location}</span>}</div>
-          <ShareActions title={article.title} />
+          <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm no-print" style={{ borderColor: "var(--line)" }}>
+            <AuthorLink name={article.author} slug={article.authorSlug} />
+            <span className="flex items-center gap-1"><Clock size={15} />{formatHindiDateTime(article.publishedAt)}</span>
+            <span>{article.readTime}</span>
+            {showUpdated && article.updatedAt && (
+              <span>अपडेट: {formatHindiDate(article.updatedAt)}</span>
+            )}
+            <span className="flex items-center gap-1"><Eye size={15} />{article.views.toLocaleString("hi-IN")}</span>
+            {article.location && <span className="flex items-center gap-1"><MapPin size={15} />{article.location}</span>}
+          </div>
+          <div className="no-print flex flex-wrap items-center justify-between gap-3">
+            <ShareActions title={article.title} />
+            <PrintButton />
+          </div>
           <figure className="mt-6"><div className="relative aspect-[16/9] overflow-hidden rounded-2xl"><Image src={article.image} alt={article.imageAlt} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" /></div><figcaption className="muted mt-2 text-xs">{article.imageAlt}</figcaption></figure>
           {videoEmbed && (
             <div className="my-7 aspect-video overflow-hidden rounded-2xl">
@@ -117,12 +134,18 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           <DbAdSlot position="ARTICLE_BOTTOM" />
           <div className="mt-7 flex flex-wrap gap-2">{article.tags.map((tag) => <Link className="rounded-full border px-3 py-1 text-sm font-bold" style={{ borderColor: "var(--line)" }} href={`/search?q=${tag}`} key={tag}>#{tag}</Link>)}</div>
-          <section className="surface mt-8 flex gap-4 rounded-xl p-5"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-xl font-black text-white">{article.author[0]}</div><div><span className="muted text-xs">लेखक</span><h2 className="font-black">{article.author}</h2></div></section>
+          <section className="surface mt-8 flex gap-4 rounded-xl p-5 no-print">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-xl font-black text-white">{article.author[0]}</div>
+            <div>
+              <span className="muted text-xs">लेखक</span>
+              <h2 className="font-black"><AuthorLink name={article.author} slug={article.authorSlug} /></h2>
+            </div>
+          </section>
           <Comments articleSlug={slug} />
         </article>
-        <aside className="grid content-start gap-6"><DbAdSlot position="SIDEBAR" /><SidebarList title="आपके लिए" items={sidebarArticles} /></aside>
+        <aside className="grid content-start gap-6 no-print"><DbAdSlot position="SIDEBAR" /><SidebarList title="आपके लिए" items={sidebarArticles} /></aside>
       </div>
-      <section className="mt-12"><h2 className="section-title">संबंधित खबरें</h2><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{(related.length ? related : sidebarArticles).map((item) => <StoryCard article={item} categories={categories} key={item.slug} />)}</div></section>
+      <section className="mt-12 no-print"><h2 className="section-title">संबंधित खबरें</h2><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{(related.length ? related : sidebarArticles).map((item) => <StoryCard article={item} categories={categories} key={item.slug} />)}</div></section>
     </div>
   );
 }

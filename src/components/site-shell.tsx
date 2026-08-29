@@ -8,6 +8,7 @@ import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video
 import { BRAND_ASSETS, type SiteConfig } from "@/lib/data";
 import type { PublicCategory } from "@/lib/types";
 import { BreakingTickerClient } from "./breaking-ticker";
+import { NewsletterSignup } from "./newsletter-signup";
 
 function SiteBrandLogo() {
   return (
@@ -141,8 +142,8 @@ export function SiteFooter({ site }: { site: SiteConfig }) {
 
   return (
     <footer className="mt-16 bg-[#151515] text-white">
-      <div className="container-main grid gap-10 py-12 md:grid-cols-4">
-        <div className="md:col-span-2">
+      <div className="container-main grid gap-10 py-12 lg:grid-cols-[1.2fr_1fr_1fr]">
+        <div>
           <h2 className="text-2xl font-black"><SiteBrandTitle name={site.name} /></h2>
           <p className="mt-3 max-w-lg leading-7 text-neutral-400">{site.tagline}। {site.description}</p>
           {contactBits.length > 0 && (
@@ -171,7 +172,7 @@ export function SiteFooter({ site }: { site: SiteConfig }) {
           </div>
         </div>
         <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
-        <div><h3 className="font-bold text-[#e8a526]">स्थानीय कवरेज</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/category/hisar">हिसार शहर</Link><Link href="/category/haryana">हरियाणा</Link><Link href="/category/business">मंडी भाव</Link><Link href="/category/education">शिक्षा व रोजगार</Link></div></div>
+        <NewsletterSignup />
       </div>
       <div className="border-t border-neutral-800 py-5 text-center text-xs text-neutral-500">© {new Date().getFullYear()} {site.name} • सर्वाधिकार सुरक्षित</div>
     </footer>

@@ -30,7 +30,9 @@ export function toPublicArticle(article: ArticleWithRelations): PublicArticle {
     image: article.featuredImage?.url ?? DEFAULT_IMAGE,
     imageAlt: article.featuredImage?.alt ?? article.title,
     author: article.author.name,
+    authorSlug: article.author.slug,
     publishedAt: (article.publishedAt ?? article.createdAt).toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
     readTime: formatReadTime(article.readTimeMinutes),
     breaking: article.breaking || undefined,
     featured: article.featured || undefined,
@@ -54,6 +56,24 @@ export async function getCategories(): Promise<PublicCategory[]> {
 
 export async function getCategoryBySlug(slug: string) {
   return prisma.category.findUnique({ where: { slug } });
+}
+
+export async function getAuthorBySlug(slug: string) {
+  return prisma.author.findUnique({ where: { slug } });
+}
+
+export async function getArticlesByAuthor(authorSlug: string, limit = 20) {
+  const rows = await prisma.article.findMany({
+    where: { ...publishedWhere, author: { slug: authorSlug } },
+    include: articleInclude,
+    orderBy: { publishedAt: "desc" },
+    take: limit,
+  });
+  return rows.map(toPublicArticle);
+}
+
+export async function getNewsletterSubscriberCount() {
+  return prisma.newsletterSubscriber.count();
 }
 
 const publishedWhere: Prisma.ArticleWhereInput = {
@@ -255,7 +275,7 @@ export async function getAnalyticsSummary() {
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [today, week, month, total, topArticles, topCategories] = await Promise.all([
+  const [today, week, month, total, topArticles, topCategories, newsletterSubscribers] = await Promise.all([
     prisma.articleView.count({ where: { viewedAt: { gte: todayStart } } }),
     prisma.articleView.count({ where: { viewedAt: { gte: weekStart } } }),
     prisma.articleView.count({ where: { viewedAt: { gte: monthStart } } }),
@@ -273,6 +293,7 @@ export async function getAnalyticsSummary() {
       orderBy: { _sum: { viewCount: "desc" } },
       take: 5,
     }),
+    prisma.newsletterSubscriber.count().catch(() => 0),
   ]);
 
   const categoryIds = topCategories.map((c) => c.categoryId);
@@ -293,6 +314,7 @@ export async function getAnalyticsSummary() {
       review: await prisma.article.count({ where: { status: "REVIEW" } }),
       scheduled: await prisma.article.count({ where: { status: "SCHEDULED" } }),
     },
+    newsletterSubscribers,
   };
 }
 

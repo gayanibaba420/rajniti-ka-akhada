@@ -1,5 +1,6 @@
 export const HOMEPAGE_SECTION_KEYS = [
   { key: "homepage_show_lead", label: "मुख्य बड़ी खबर" },
+  { key: "homepage_show_trending", label: "ट्रेंडिंग / सबसे ज्यादा पढ़ी" },
   { key: "homepage_show_live", label: "लाइव अपडेट" },
   { key: "homepage_show_hisar", label: "हिसार स्पेशल" },
   { key: "homepage_show_haryana", label: "हरियाणा की हलचल" },

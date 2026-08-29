@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bookmark, Check, Link2, MessageCircle, Send, Share2 as Facebook } from "lucide-react";
+import { Bookmark, Check, Link2, MessageCircle, Printer, Send, Share2 as Facebook } from "lucide-react";
 
 export function ShareActions({ title }: { title: string }) {
   const [saved, setSaved] = useState(false);
@@ -47,6 +47,19 @@ export function ShareActions({ title }: { title: string }) {
         <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
       </button>
     </div>
+  );
+}
+
+export function PrintButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.print()}
+      className="btn btn-ghost text-sm"
+      aria-label="लेख प्रिंट करें"
+    >
+      <Printer size={16} /> प्रिंट
+    </button>
   );
 }
 

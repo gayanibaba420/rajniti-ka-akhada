@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Play, Radio } from "lucide-react";
 import { DbAdSlot } from "@/components/db-ad-slot";
+import { EditorsPickBadge } from "@/components/article-badges";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import {
   getArticleBySlug,
@@ -84,6 +85,7 @@ export default async function Home() {
             <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-9">
               <div className="mb-3 flex flex-wrap gap-2">
                 <span className="rounded bg-[#a71d2a] px-3 py-1 text-sm font-black">बड़ी खबर</span>
+                {lead.featured && <EditorsPickBadge className="!px-3 !py-1 !text-sm" />}
                 {lead.location && (
                   <span className="flex items-center gap-1 rounded bg-white/15 px-3 py-1 text-sm backdrop-blur">
                     <MapPin size={14} /> {lead.location}
@@ -124,6 +126,26 @@ export default async function Home() {
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {isHomepageSectionEnabled(homepage, "homepage_show_trending") && (
+        <section className="border-y bg-[var(--surface)] py-12">
+          <div className="container-main grid gap-8 lg:grid-cols-[1fr_380px]">
+            <div>
+              <h2 className="section-title">ट्रेंडिंग खबरें</h2>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {(trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views)).slice(0, 4).map((a) => (
+                  <StoryCard key={`trending-${a.slug}`} article={a} categories={categories} />
+                ))}
+              </div>
+            </div>
+            <SidebarList
+              title="सबसे ज्यादा पढ़ी गई"
+              variant="trending"
+              items={(trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views)).slice(0, 5)}
+            />
           </div>
         </section>
       )}
@@ -179,7 +201,11 @@ export default async function Home() {
             <div>
               <DbAdSlot position="SIDEBAR" />
               <div className="mt-6">
-                <SidebarList items={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views).slice(0, 5)} />
+                <SidebarList
+                  title="सबसे ज्यादा पढ़ी गई"
+                  variant="trending"
+                  items={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views).slice(0, 5)}
+                />
               </div>
             </div>
           </div>

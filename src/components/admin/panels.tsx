@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Plus, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import { AD_POSITION_LABELS, STATUS_LABELS, slugify } from "@/lib/types";
 import { HOMEPAGE_SECTION_KEYS } from "@/lib/homepage-settings";
 import { ErrorBlock, LoadingBlock, PanelHeader, StorageBanner } from "./shared";
@@ -65,6 +65,7 @@ export function DashboardPanel({
     ["ड्राफ्ट", counts?.draft ?? 0],
     ["आज के समाचार", todayNews],
     ["कुल व्यू", views?.total ?? 0],
+    ["न्यूज़लेटर", analytics?.newsletterSubscribers ?? 0],
   ] as const;
 
   return (
@@ -78,7 +79,7 @@ export function DashboardPanel({
           </button>
         }
       />
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {stats.map(([label, value]) => (
           <div className="surface rounded-xl p-5" key={label}>
             <p className="muted text-sm">{label}</p>
@@ -127,12 +128,67 @@ export function PostsPanel({
 }) {
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const filtered = articles.filter((a) => {
     const matchText = !filter.trim() || a.title.toLowerCase().includes(filter.toLowerCase());
     const matchStatus = statusFilter === "ALL" || a.status === statusFilter;
     return matchText && matchStatus;
   });
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (allFilteredSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((a) => next.delete(a.id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        filtered.forEach((a) => next.add(a.id));
+        return next;
+      });
+    }
+  }
+
+  async function bulkAction(action: "publish" | "draft" | "delete") {
+    const ids = [...selected];
+    if (!ids.length) return;
+    if (action === "delete" && !window.confirm(`${ids.length} समाचार हटाएं?`)) return;
+    setBulkBusy(true);
+    const res = await fetch("/api/admin/articles/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBulkBusy(false);
+    flash(res.ok ? (data.message ?? "अपडेट") : (data.error ?? "त्रुटि"));
+    if (res.ok) {
+      setSelected(new Set());
+      onRefresh();
+    }
+  }
+
+  async function duplicate(article: ArticleRow) {
+    const res = await fetch(`/api/admin/articles/${article.id}/duplicate`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    flash(res.ok ? (data.message ?? "प्रति बनाई गई") : (data.error ?? "प्रति बनाना विफल"));
+    if (res.ok) onRefresh();
+  }
 
   async function updateStatus(article: ArticleRow, nextStatus: string) {
     const res = await fetch(`/api/admin/articles/${article.id}`, {
@@ -187,10 +243,27 @@ export function PostsPanel({
           ))}
         </select>
       </div>
+      {selected.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border p-3" style={{ borderColor: "var(--line)" }}>
+          <span className="text-sm font-bold">{selected.size} चयनित</span>
+          <button type="button" disabled={bulkBusy} onClick={() => bulkAction("publish")} className="btn btn-primary text-xs">
+            प्रकाशित
+          </button>
+          <button type="button" disabled={bulkBusy} onClick={() => bulkAction("draft")} className="btn btn-ghost text-xs">
+            ड्राफ्ट
+          </button>
+          <button type="button" disabled={bulkBusy} onClick={() => bulkAction("delete")} className="btn btn-ghost text-xs text-red-600">
+            हटाएं
+          </button>
+        </div>
+      )}
       <div className="surface mt-6 overflow-x-auto rounded-xl">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="bg-black/5 dark:bg-white/5">
             <tr>
+              <th className="p-4 w-10">
+                <input type="checkbox" checked={allFilteredSelected} onChange={toggleAll} aria-label="सभी चुनें" />
+              </th>
               {["शीर्षक", "श्रेणी", "लेखक", "स्थिति", "व्यू", "कार्रवाई"].map((h) => (
                 <th className="p-4" key={h}>
                   {h}
@@ -201,6 +274,9 @@ export function PostsPanel({
           <tbody>
             {filtered.map((a) => (
               <tr className="border-t" style={{ borderColor: "var(--line)" }} key={a.id}>
+                <td className="p-4">
+                  <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggleOne(a.id)} aria-label={`${a.title} चुनें`} />
+                </td>
                 <td className="max-w-sm p-4 font-bold">{a.title}</td>
                 <td className="p-4">{a.category.name}</td>
                 <td className="p-4">{a.author.name}</td>
@@ -218,6 +294,9 @@ export function PostsPanel({
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => edit(a)} className="brand font-bold">
                       संपादित
+                    </button>
+                    <button onClick={() => duplicate(a)} className="font-bold text-neutral-600 dark:text-neutral-300" title="ड्राफ्ट प्रति">
+                      <Copy size={14} className="inline" /> प्रति
                     </button>
                     <button onClick={() => remove(a)} className="text-red-600 font-bold">
                       हटाएं
@@ -878,6 +957,7 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishedArticles, setPublishedArticles] = useState<Array<{ slug: string; title: string }>>([]);
+  const [newsletterCount, setNewsletterCount] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -885,6 +965,14 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
       .then((d) => setValues(d.settings ?? {}))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (tab !== "general") return;
+    fetch("/api/admin/analytics")
+      .then((r) => r.json())
+      .then((d) => setNewsletterCount(d.newsletterSubscribers ?? 0))
+      .catch(() => undefined);
+  }, [tab]);
 
   useEffect(() => {
     if (tab !== "homepage") return;
@@ -958,6 +1046,13 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
       ) : (
         <form onSubmit={save} className="surface mt-6 max-w-2xl rounded-xl p-5">
           <div className="grid gap-5">
+            {tab === "general" && newsletterCount != null && (
+              <div className="rounded-lg border p-4 text-sm" style={{ borderColor: "var(--line)" }}>
+                <strong>न्यूज़लेटर सदस्य</strong>
+                <p className="mt-1 text-2xl font-black">{newsletterCount.toLocaleString("hi-IN")}</p>
+                <p className="muted mt-1 text-xs">फ़ुटर से ईमेल सदस्यता लेने वाले पाठक</p>
+              </div>
+            )}
             {tab === "homepage" && (
               <>
                 <label className="text-sm font-bold">

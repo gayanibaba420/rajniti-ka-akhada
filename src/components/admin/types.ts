@@ -41,6 +41,7 @@ export type StorageStatus = { provider: string; configured: boolean; message?: s
 export type AnalyticsSummary = {
   views?: { today: number; week: number; month: number; total: number };
   postCounts?: { total: number; published: number; draft: number; review: number; scheduled?: number };
+  newsletterSubscribers?: number;
 };
 
 export type AdminSection =

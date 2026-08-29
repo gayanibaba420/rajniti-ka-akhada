@@ -8,6 +8,13 @@ export type ContentBlock =
   | { type: "image"; url: string; alt?: string; caption?: string }
   | { type: "embed"; url: string; provider?: string };
 
+export interface PublicAuthor {
+  slug: string;
+  name: string;
+  bio?: string;
+  avatar?: string;
+}
+
 export interface PublicArticle {
   slug: string;
   title: string;
@@ -18,7 +25,9 @@ export interface PublicArticle {
   image: string;
   imageAlt: string;
   author: string;
+  authorSlug: string;
   publishedAt: string;
+  updatedAt?: string;
   readTime: string;
   breaking?: boolean;
   featured?: boolean;
@@ -142,7 +151,15 @@ export function computeReadTimeMinutes(blocks: ContentBlock[]): number {
 }
 
 export function formatReadTime(minutes: number): string {
-  return `${minutes} मिनट`;
+  return `${minutes} मिनट पढ़ें`;
+}
+
+export function formatHindiDate(iso: string, options?: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat("hi-IN", options ?? { dateStyle: "medium" }).format(new Date(iso));
+}
+
+export function formatHindiDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
 export function slugify(value: string): string {

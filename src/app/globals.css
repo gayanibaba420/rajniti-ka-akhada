@@ -71,3 +71,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+@media print {
+  body { background: white; color: black; font-size: 12pt; }
+  .no-print, header, footer, nav, aside, .btn, [aria-label="खोजें"], .ticker { display: none !important; }
+  .container-main { width: 100%; max-width: none; margin: 0; padding: 0; }
+  .print-container article { max-width: 100%; }
+  .print-container h1 { font-size: 22pt; line-height: 1.2; }
+  .prose-news p { font-size: 11pt; line-height: 1.6; }
+  .prose-news figure, .prose-news img { break-inside: avoid; page-break-inside: avoid; }
+  a[href]::after { content: none; }
+}
