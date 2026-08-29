@@ -72,6 +72,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         ...(input.seoTitle !== undefined && { seoTitle: input.seoTitle }),
         ...(input.seoDescription !== undefined && { seoDescription: input.seoDescription }),
         ...(input.canonicalUrl !== undefined && { canonicalUrl: input.canonicalUrl || null }),
+        ...(input.videoUrl !== undefined && { videoUrl: input.videoUrl || null }),
         ...(publishedAt !== undefined && { publishedAt }),
         ...(scheduledAt !== undefined && { scheduledAt }),
         ...(input.categoryId !== undefined && { categoryId: input.categoryId }),

@@ -21,6 +21,9 @@ export type SiteConfig = {
   headerNotice: string;
   seoKeywords: string;
   gscVerification: string;
+  socialFacebook: string;
+  socialInstagram: string;
+  socialYoutube: string;
 };
 
 const SITE_DEFAULTS: Omit<SiteConfig, "url"> = {
@@ -34,6 +37,9 @@ const SITE_DEFAULTS: Omit<SiteConfig, "url"> = {
   headerNotice: "",
   seoKeywords: "",
   gscVerification: "",
+  socialFacebook: "",
+  socialInstagram: "",
+  socialYoutube: "",
 };
 
 /** Build public site config from DB settings with static fallbacks. */
@@ -50,6 +56,9 @@ export function buildSiteConfig(settings: Record<string, string> = {}): SiteConf
     headerNotice: settings.header_notice?.trim() || SITE_DEFAULTS.headerNotice,
     seoKeywords: settings.seo_keywords?.trim() || SITE_DEFAULTS.seoKeywords,
     gscVerification: settings.gsc_verification?.trim() || SITE_DEFAULTS.gscVerification,
+    socialFacebook: settings.social_facebook?.trim() || SITE_DEFAULTS.socialFacebook,
+    socialInstagram: settings.social_instagram?.trim() || SITE_DEFAULTS.socialInstagram,
+    socialYoutube: settings.social_youtube?.trim() || SITE_DEFAULTS.socialYoutube,
   };
 }
 

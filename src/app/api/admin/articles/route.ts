@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         seoTitle: input.seoTitle,
         seoDescription: input.seoDescription,
         canonicalUrl: input.canonicalUrl || null,
+        videoUrl: input.videoUrl || null,
         publishedAt,
         scheduledAt,
         categoryId: input.categoryId,

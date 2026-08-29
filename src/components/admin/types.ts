@@ -25,6 +25,7 @@ export type ArticleRow = {
   seoTitle?: string | null;
   seoDescription?: string | null;
   canonicalUrl?: string | null;
+  videoUrl?: string | null;
   scheduledAt?: string | null;
   publishedAt?: string | null;
   category: { id: string; name: string };

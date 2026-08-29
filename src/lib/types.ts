@@ -31,6 +31,7 @@ export interface PublicArticle {
   seoDescription?: string;
   canonicalUrl?: string;
   highlight?: string;
+  videoUrl?: string;
 }
 
 export interface PublicCategory {

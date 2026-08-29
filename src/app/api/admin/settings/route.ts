@@ -27,6 +27,7 @@ export async function PUT(request: NextRequest) {
       )
     );
     revalidatePath("/", "layout");
+    revalidatePath("/");
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);

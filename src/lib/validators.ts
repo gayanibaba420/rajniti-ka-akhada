@@ -5,6 +5,11 @@ export const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(6),
+  newPassword: z.string().min(8).max(128),
+});
+
 export const articleInputSchema = z.object({
   title: z.string().trim().min(10).max(160),
   slug: z.string().regex(/^[a-z0-9-]+$/).max(180),
@@ -22,6 +27,7 @@ export const articleInputSchema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   canonicalUrl: z.string().url().optional().or(z.literal("")),
+  videoUrl: z.string().url().optional().or(z.literal("")),
   featuredImageId: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional().nullable(),

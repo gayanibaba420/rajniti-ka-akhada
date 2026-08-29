@@ -43,6 +43,7 @@ export function toPublicArticle(article: ArticleWithRelations): PublicArticle {
     seoDescription: article.seoDescription ?? undefined,
     canonicalUrl: article.canonicalUrl ?? undefined,
     highlight: article.highlight ?? undefined,
+    videoUrl: article.videoUrl ?? undefined,
   };
 }
 

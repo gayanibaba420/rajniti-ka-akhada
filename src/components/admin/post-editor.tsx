@@ -42,6 +42,7 @@ export function PostEditor({
   const [trending, setTrending] = useState(article?.trending ?? false);
   const [seoTitle, setSeoTitle] = useState(article?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(article?.seoDescription ?? "");
+  const [videoUrl, setVideoUrl] = useState(article?.videoUrl ?? "");
   const [scheduledAt, setScheduledAt] = useState(article?.scheduledAt?.slice(0, 16) ?? "");
   const [featuredImageId, setFeaturedImageId] = useState<string | null>(article?.featuredImage?.id ?? null);
   const [featuredImagePreview, setFeaturedImagePreview] = useState<{ url: string; alt?: string | null } | null>(
@@ -225,6 +226,7 @@ export function PostEditor({
       trending,
       seoTitle,
       seoDescription,
+      videoUrl: videoUrl.trim() || undefined,
       featuredImageId,
       scheduledAt: nextStatus === "SCHEDULED" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
     };
@@ -442,6 +444,10 @@ export function PostEditor({
             <label className="text-sm font-bold">
               Meta विवरण
               <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} className="input mt-1" />
+            </label>
+            <label className="text-sm font-bold">
+              वीडियो URL (वैकल्पिक)
+              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="input mt-1" placeholder="https://youtube.com/watch?v=..." />
             </label>
             <label className="text-sm font-bold">
               टैग

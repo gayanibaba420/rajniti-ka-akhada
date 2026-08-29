@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Plus, Trash2 } from "lucide-react";
 import { AD_POSITION_LABELS, STATUS_LABELS, slugify } from "@/lib/types";
+import { HOMEPAGE_SECTION_KEYS } from "@/lib/homepage-settings";
 import { ErrorBlock, LoadingBlock, PanelHeader, StorageBanner } from "./shared";
 import type { AnalyticsSummary, ArticleRow } from "./types";
 
@@ -18,11 +19,17 @@ const SETTING_LABELS: Record<string, string> = {
   seo_keywords: "SEO कीवर्ड",
   gsc_verification: "Google Search Console सत्यापन",
   header_notice: "हेडर सूचना",
+  social_facebook: "Facebook URL",
+  social_instagram: "Instagram URL",
+  social_youtube: "YouTube URL",
+  homepage_featured_slug: "होमपेज मुख्य खबर (slug)",
 };
 
 const GENERAL_KEYS = ["site_name", "contact_email", "contact_phone", "site_logo", "site_favicon"];
+const SOCIAL_KEYS = ["social_facebook", "social_instagram", "social_youtube"];
 const SEO_KEYS = ["site_name", "site_description", "seo_keywords", "gsc_verification"];
 const APPEARANCE_KEYS = ["site_logo", "site_favicon", "site_tagline", "header_notice"];
+const HOMEPAGE_KEYS = ["homepage_featured_slug", ...HOMEPAGE_SECTION_KEYS.map((s) => s.key)];
 
 const AD_SLOT_HINTS: Record<string, string> = {
   HEADER: "हेडर",
@@ -805,13 +812,72 @@ export function AdsPanel({ flash }: { flash: (s: string) => void }) {
   );
 }
 
-type SettingsTab = "general" | "seo" | "appearance";
+type SettingsTab = "general" | "seo" | "appearance" | "homepage" | "security";
+
+function ChangePasswordForm({ flash }: { flash: (s: string) => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (newPassword.length < 8) {
+      setError("नया पासवर्ड कम से कम 8 अक्षर");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("पासवर्ड मेल नहीं खाते");
+      return;
+    }
+    setSaving(true);
+    const res = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok) {
+      flash(data.message ?? "पासवर्ड बदल दिया गया");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      setError(data.error ?? "पासवर्ड बदलना विफल");
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid max-w-md gap-4">
+      <label className="text-sm font-bold">
+        वर्तमान पासवर्ड
+        <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="input mt-2" required autoComplete="current-password" />
+      </label>
+      <label className="text-sm font-bold">
+        नया पासवर्ड
+        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input mt-2" required minLength={8} autoComplete="new-password" />
+      </label>
+      <label className="text-sm font-bold">
+        नया पासवर्ड (पुष्टि)
+        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input mt-2" required minLength={8} autoComplete="new-password" />
+      </label>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <button type="submit" disabled={saving} className="btn btn-primary w-fit">
+        {saving ? "बदल रहे हैं..." : "पासवर्ड बदलें"}
+      </button>
+    </form>
+  );
+}
 
 export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) {
   const [tab, setTab] = useState<SettingsTab>("general");
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishedArticles, setPublishedArticles] = useState<Array<{ slug: string; title: string }>>([]);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -820,19 +886,31 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
       .finally(() => setLoading(false));
   }, []);
 
-  const tabKeys: Record<SettingsTab, string[]> = {
-    general: GENERAL_KEYS,
+  useEffect(() => {
+    if (tab !== "homepage") return;
+    fetch("/api/admin/articles?status=PUBLISHED&limit=100")
+      .then((r) => r.json())
+      .then((d) => setPublishedArticles((d.articles ?? []).map((a: { slug: string; title: string }) => ({ slug: a.slug, title: a.title }))))
+      .catch(() => undefined);
+  }, [tab]);
+
+  const tabKeys: Record<Exclude<SettingsTab, "security">, string[]> = {
+    general: [...GENERAL_KEYS, ...SOCIAL_KEYS],
     seo: SEO_KEYS,
     appearance: APPEARANCE_KEYS,
+    homepage: HOMEPAGE_KEYS,
   };
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const keys = [...new Set(Object.values(tabKeys).flat())];
+    const keys = [...new Set([...Object.values(tabKeys).flat(), ...HOMEPAGE_SECTION_KEYS.map((s) => s.key)])];
     const settings: Record<string, string> = {};
     keys.forEach((k) => {
       settings[k] = values[k] ?? "";
+    });
+    HOMEPAGE_SECTION_KEYS.forEach(({ key }) => {
+      settings[key] = values[key] === "0" ? "0" : "1";
     });
     const res = await fetch("/api/admin/settings", {
       method: "PUT",
@@ -843,15 +921,21 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
     flash(res.ok ? "सेटिंग्स सुरक्षित" : "त्रुटि");
   }
 
+  function toggleHomepageSection(key: string) {
+    setValues((prev) => ({ ...prev, [key]: prev[key] === "0" ? "1" : "0" }));
+  }
+
   const tabs: Array<[SettingsTab, string]> = [
     ["general", "सामान्य"],
     ["seo", "SEO"],
     ["appearance", "दिखावट"],
+    ["homepage", "होमपेज"],
+    ["security", "सुरक्षा"],
   ];
 
   return (
     <div>
-      <PanelHeader title="सेटिंग्स" subtitle="वेबसाइट, SEO और दिखावट" />
+      <PanelHeader title="सेटिंग्स" subtitle="वेबसाइट, SEO, होमपेज और सुरक्षा" />
       <div className="mt-4 flex flex-wrap gap-2">
         {tabs.map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} className={`btn text-sm ${tab === id ? "btn-primary" : "btn-ghost"}`}>
@@ -863,19 +947,65 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
         <div className="mt-6">
           <LoadingBlock />
         </div>
+      ) : tab === "security" ? (
+        <div className="surface mt-6 max-w-2xl rounded-xl p-5">
+          <h2 className="font-black">पासवर्ड बदलें</h2>
+          <p className="muted mt-1 text-sm">अपने एडमिन खाते का पासवर्ड अपडेट करें।</p>
+          <div className="mt-5">
+            <ChangePasswordForm flash={flash} />
+          </div>
+        </div>
       ) : (
         <form onSubmit={save} className="surface mt-6 max-w-2xl rounded-xl p-5">
           <div className="grid gap-5">
-            {tabKeys[tab].map((key) => (
-              <label className="text-sm font-bold" key={key}>
-                {SETTING_LABELS[key] ?? key}
-                {key.includes("description") || key === "header_notice" ? (
-                  <textarea value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} className="input mt-2 min-h-20" />
-                ) : (
-                  <input className="input mt-2" value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} />
-                )}
-              </label>
-            ))}
+            {tab === "homepage" && (
+              <>
+                <label className="text-sm font-bold">
+                  मुख्य फीचर्ड खबर
+                  <select
+                    value={values.homepage_featured_slug ?? ""}
+                    onChange={(e) => setValues({ ...values, homepage_featured_slug: e.target.value })}
+                    className="input mt-2"
+                  >
+                    <option value="">स्वचालित (फीचर्ड → नवीनतम)</option>
+                    {publishedArticles.map((a) => (
+                      <option key={a.slug} value={a.slug}>
+                        {a.title}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="muted mt-1 block text-xs">खाली छोड़ने पर पहली फीचर्ड या नवीनतम प्रकाशित खबर दिखेगी।</span>
+                </label>
+                <div>
+                  <h3 className="font-black">होमपेज सेक्शन ON/OFF</h3>
+                  <div className="mt-3 grid gap-2">
+                    {HOMEPAGE_SECTION_KEYS.map(({ key, label }) => {
+                      const enabled = values[key] !== "0";
+                      return (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border p-3" style={{ borderColor: "var(--line)" }} key={key}>
+                          <span className="text-sm font-bold">{label}</span>
+                          <button type="button" onClick={() => toggleHomepageSection(key)} className={`btn text-xs ${enabled ? "btn-primary" : "btn-ghost"}`}>
+                            {enabled ? "ON" : "OFF"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+            {tabKeys[tab]
+              .filter((key) => !HOMEPAGE_SECTION_KEYS.some((s) => s.key === key))
+              .map((key) => (
+                <label className="text-sm font-bold" key={key}>
+                  {SETTING_LABELS[key] ?? key}
+                  {key.includes("description") || key === "header_notice" ? (
+                    <textarea value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} className="input mt-2 min-h-20" />
+                  ) : (
+                    <input className="input mt-2" value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} />
+                  )}
+                </label>
+              ))}
             {tab === "seo" && (
               <div className="rounded-lg border p-4 text-sm" style={{ borderColor: "var(--line)" }}>
                 <strong>Sitemap स्थिति</strong>

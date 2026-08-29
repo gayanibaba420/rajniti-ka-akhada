@@ -6,12 +6,48 @@ import { Bookmark, Check, Link2, MessageCircle, Send, Share2 as Facebook } from 
 export function ShareActions({ title }: { title: string }) {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  function pageUrl() {
+    return typeof window !== "undefined" ? window.location.href : "";
+  }
+
   async function copy() {
-    await navigator.clipboard.writeText(location.href);
+    const url = pageUrl();
+    await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
-  return <div className="flex flex-wrap gap-2"><button className="btn btn-ghost !p-2.5" aria-label="Facebook पर साझा करें"><Facebook size={18}/></button><button className="btn btn-ghost !p-2.5" aria-label="WhatsApp पर साझा करें"><MessageCircle size={18}/></button><button onClick={copy} className="btn btn-ghost !p-2.5" aria-label={`${title} का लिंक कॉपी करें`}>{copied?<Check size={18}/>:<Link2 size={18}/>}</button><button onClick={()=>setSaved(!saved)} className={`btn ${saved?"btn-primary":"btn-ghost"} !p-2.5`} aria-label="खबर सहेजें"><Bookmark size={18} fill={saved?"currentColor":"none"}/></button></div>;
+
+  function shareFacebook() {
+    const url = pageUrl();
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      "_blank",
+      "noopener,noreferrer,width=600,height=500",
+    );
+  }
+
+  function shareWhatsApp() {
+    const url = pageUrl();
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button type="button" onClick={shareFacebook} className="btn btn-ghost !p-2.5" aria-label="Facebook पर साझा करें">
+        <Facebook size={18} />
+      </button>
+      <button type="button" onClick={shareWhatsApp} className="btn btn-ghost !p-2.5" aria-label="WhatsApp पर साझा करें">
+        <MessageCircle size={18} />
+      </button>
+      <button onClick={copy} className="btn btn-ghost !p-2.5" aria-label={`${title} का लिंक कॉपी करें`}>
+        {copied ? <Check size={18} /> : <Link2 size={18} />}
+      </button>
+      <button onClick={() => setSaved(!saved)} className={`btn ${saved ? "btn-primary" : "btn-ghost"} !p-2.5`} aria-label="खबर सहेजें">
+        <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
+      </button>
+    </div>
+  );
 }
 
 interface CommentItem { content: string; authorName: string; createdAt: string }

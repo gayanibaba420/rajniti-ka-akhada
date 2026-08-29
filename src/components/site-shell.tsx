@@ -160,7 +160,23 @@ export function SiteFooter({ site }: { site: SiteConfig }) {
               {site.phone && <>फ़ोन: <a href={`tel:${site.phone.replace(/\s+/g, "")}`} className="text-[#e8a526] hover:underline">{site.phone}</a></>}
             </p>
           )}
-          <div className="mt-5 flex gap-3"><a href="https://facebook.com" aria-label="Facebook"><Facebook /></a><a href="https://instagram.com" aria-label="Instagram"><Instagram /></a><a href="https://youtube.com" aria-label="YouTube"><Youtube /></a></div>
+          <div className="mt-5 flex gap-3">
+            {site.socialFacebook && (
+              <a href={site.socialFacebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <Facebook />
+              </a>
+            )}
+            {site.socialInstagram && (
+              <a href={site.socialInstagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <Instagram />
+              </a>
+            )}
+            {site.socialYoutube && (
+              <a href={site.socialYoutube} target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                <Youtube />
+              </a>
+            )}
+          </div>
         </div>
         <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
         <div><h3 className="font-bold text-[#e8a526]">स्थानीय कवरेज</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/category/hisar">हिसार शहर</Link><Link href="/category/haryana">हरियाणा</Link><Link href="/category/business">मंडी भाव</Link><Link href="/category/education">शिक्षा व रोजगार</Link></div></div>

@@ -11,6 +11,7 @@ import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticl
 import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
+import { toVideoEmbedUrl } from "@/lib/video-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -80,6 +81,7 @@ export default async function ArticlePage({ params }: Props) {
   ]);
 
   const url = `${config.url}/article/${article.slug}`;
+  const videoEmbed = article.videoUrl ? toVideoEmbedUrl(article.videoUrl) : null;
   const schema = { "@context": "https://schema.org", "@type": "NewsArticle", headline: article.title, description: article.excerpt, image: [`${config.url}${article.image.startsWith("http") ? article.image : article.image}`], datePublished: article.publishedAt, dateModified: article.publishedAt, author: { "@type": "Person", name: article.author }, publisher: { "@type": "NewsMediaOrganization", name: config.name }, mainEntityOfPage: url };
   const breadcrumb = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "होम", item: config.url }, { "@type": "ListItem", position: 2, name: article.categoryName, item: `${config.url}/category/${article.category}` }, { "@type": "ListItem", position: 3, name: article.title, item: url }] };
   const blocks = article.contentBlocks ?? [];
@@ -99,6 +101,11 @@ export default async function ArticlePage({ params }: Props) {
           <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm" style={{ borderColor: "var(--line)" }}><strong className="text-[var(--foreground)]">{article.author}</strong><span className="flex items-center gap-1"><Clock size={15} />{new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(article.publishedAt))}</span><span className="flex items-center gap-1"><Eye size={15} />{article.views.toLocaleString("hi-IN")}</span>{article.location && <span className="flex items-center gap-1"><MapPin size={15} />{article.location}</span>}</div>
           <ShareActions title={article.title} />
           <figure className="mt-6"><div className="relative aspect-[16/9] overflow-hidden rounded-2xl"><Image src={article.image} alt={article.imageAlt} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" /></div><figcaption className="muted mt-2 text-xs">{article.imageAlt}</figcaption></figure>
+          {videoEmbed && (
+            <div className="my-7 aspect-video overflow-hidden rounded-2xl">
+              <iframe src={videoEmbed} className="h-full w-full" title={`${article.title} वीडियो`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            </div>
+          )}
           {article.highlight && <div className="my-7 rounded-xl border-l-8 border-[var(--brand)] bg-[var(--surface)] p-5 shadow-sm"><strong className="brand">खबर का सार</strong><p className="mt-2 font-bold leading-7">{article.highlight}</p></div>}
           <div className="prose-news">
             {(blocks.length ? blocks : article.content.map((text) => ({ type: "paragraph" as const, text }))).map((block, index) => (
