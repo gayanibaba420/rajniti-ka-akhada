@@ -1,4 +1,5 @@
 import type { Prisma, Article as DbArticle, ArticleStatus } from "@prisma/client";
+import { getSiteUrl } from "./data";
 import { prisma } from "./db";
 import type { ContentBlock, PublicArticle, PublicCategory } from "./types";
 import { blocksToPlainText, computeReadTimeMinutes, formatReadTime } from "./types";
@@ -213,7 +214,7 @@ export async function getSiteConfig() {
     name: settings.site_name ?? "राजनीति का अखाड़ा",
     tagline: settings.site_tagline ?? "हिंदी समाचार • निष्पक्ष विचार",
     description: settings.site_description ?? "हरियाणा, हिसार, राजनीति और देश-दुनिया की विश्वसनीय हिंदी खबरें।",
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:43127",
+    url: getSiteUrl(),
     email: settings.contact_email ?? "sampark@rajnitikaakhada.in",
   };
 }

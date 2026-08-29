@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
+import { getSiteUrl } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
-import { siteConfig as fallbackConfig } from "@/lib/data";
 import "./globals.css";
 
 const noto = Noto_Sans_Devanagari({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-noto", weight: ["400", "500", "600", "700", "800", "900"] });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const config = (await getPublicSiteConfig()) ?? fallbackConfig;
+  const config = await getPublicSiteConfig();
   return {
-    metadataBase: new URL(config.url),
+    metadataBase: new URL(getSiteUrl()),
     title: { default: `${config.name} | ${config.tagline}`, template: `%s | ${config.name}` },
     description: config.description,
     alternates: { canonical: "/" },
@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     safeDbQuery(() => getCategories(), []),
     safeDbQuery(() => getBreakingNewsItems(), []),
   ]);
-  const site = config ?? fallbackConfig;
+  const site = config;
   const organization = { "@context": "https://schema.org", "@type": "NewsMediaOrganization", name: site.name, url: site.url, logo: `${site.url}/news-assembly.svg` };
 
   return (

@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { getCategories, getCategoryBySlug, getPublishedArticles, getTrendingArticles } from "@/lib/articles";
-import { checkDbConnection } from "@/lib/db";
+import { checkDbConnection, hasDatabaseUrl } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
-import { siteConfig as fallbackConfig } from "@/lib/data";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
 
@@ -14,8 +13,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
-  const config = (await getPublicSiteConfig()) ?? fallbackConfig;
+  const config = await getPublicSiteConfig();
+  const category = await safeDbQuery(() => getCategoryBySlug(slug), null);
   if (!category) return {};
   return { title: category.name, description: category.description, alternates: { canonical: `/category/${slug}` }, openGraph: { title: `${category.name} समाचार`, description: category.description, url: `${config.url}/category/${slug}` } };
 }
@@ -62,7 +61,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 }
 
 export async function generateStaticParams() {
+  if (!hasDatabaseUrl()) return [];
   try {
+    const ok = await checkDbConnection();
+    if (!ok) return [];
     const categories = await getCategories();
     return categories.map((c) => ({ slug: c.slug }));
   } catch {

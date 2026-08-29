@@ -61,22 +61,31 @@ export class StorageNotConfiguredError extends Error {
 }
 
 export async function getStorageProvider(): Promise<StorageProvider> {
-  const provider = process.env.STORAGE_PROVIDER ?? "local";
+  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "s3" : "local");
   switch (provider) {
     case "s3":
       return new S3StorageProvider();
     case "cloudinary":
       return new CloudinaryStorageProvider();
-    default: {
+    case "local": {
       const { createLocalStorageProvider } = await import("./storage-local");
       return createLocalStorageProvider();
     }
+    default:
+      return new S3StorageProvider();
   }
 }
 
 export async function getStorageStatus(): Promise<{ provider: string; configured: boolean; message?: string }> {
-  const provider = process.env.STORAGE_PROVIDER ?? "local";
+  const provider = process.env.STORAGE_PROVIDER ?? (process.env.VERCEL ? "s3" : "local");
   if (provider === "local") {
+    if (process.env.VERCEL) {
+      return {
+        provider: "local",
+        configured: false,
+        message: "Local filesystem storage is unavailable on Vercel — set STORAGE_PROVIDER to s3 or cloudinary",
+      };
+    }
     return { provider: "local", configured: true, message: "Local filesystem storage active" };
   }
   const storage = await getStorageProvider();

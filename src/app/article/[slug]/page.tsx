@@ -8,9 +8,8 @@ import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
 import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig } from "@/lib/articles";
-import { checkDbConnection, prisma } from "@/lib/db";
+import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
-import { siteConfig as fallbackConfig } from "@/lib/data";
 import type { ContentBlock } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -19,8 +18,8 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
-  const config = (await getPublicSiteConfig()) ?? fallbackConfig;
+  const config = await getPublicSiteConfig();
+  const article = await safeDbQuery(() => getArticleBySlug(slug), null);
   if (!article) return {};
   return {
     title: article.seoTitle ?? article.title,
@@ -107,7 +106,10 @@ export default async function ArticlePage({ params }: Props) {
 }
 
 export async function generateStaticParams() {
+  if (!hasDatabaseUrl()) return [];
   try {
+    const ok = await checkDbConnection();
+    if (!ok) return [];
     const rows = await prisma.article.findMany({ where: { status: "PUBLISHED" }, select: { slug: true } });
     return rows.map((a) => ({ slug: a.slug }));
   } catch {

@@ -5,14 +5,8 @@ import type { StorageProvider, UploadResult } from "./storage";
 
 const DEFAULT_LOCAL_DIR = "uploads";
 
-function usesDefaultLocalPath(): boolean {
-  const configured = process.env.STORAGE_LOCAL_PATH;
-  return !configured || configured === "./uploads" || configured === "uploads";
-}
-
-function joinCustomLocalPath(...segments: string[]): string {
-  const configured = process.env.STORAGE_LOCAL_PATH!;
-  return path.join(/* turbopackIgnore: true */ path.resolve(/* turbopackIgnore: true */ configured), ...segments);
+function getDefaultUploadDir(): string {
+  return path.join(process.cwd(), DEFAULT_LOCAL_DIR);
 }
 
 function mimeToExt(mime: string): string {
@@ -36,9 +30,7 @@ class LocalStorageProvider implements StorageProvider {
   async upload(file: Buffer, filename: string, mimeType: string): Promise<UploadResult> {
     const ext = path.extname(filename) || mimeToExt(mimeType);
     const storageKey = `${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${randomUUID()}${ext}`;
-    const fullPath = usesDefaultLocalPath()
-      ? path.join(process.cwd(), DEFAULT_LOCAL_DIR, storageKey)
-      : joinCustomLocalPath(storageKey);
+    const fullPath = path.join(getDefaultUploadDir(), storageKey);
     await mkdir(path.dirname(fullPath), { recursive: true });
     await writeFile(fullPath, file);
     return {
@@ -51,9 +43,7 @@ class LocalStorageProvider implements StorageProvider {
   }
 
   async delete(storageKey: string): Promise<void> {
-    const fullPath = usesDefaultLocalPath()
-      ? path.join(process.cwd(), DEFAULT_LOCAL_DIR, storageKey)
-      : joinCustomLocalPath(storageKey);
+    const fullPath = path.join(getDefaultUploadDir(), storageKey);
     try {
       await unlink(fullPath);
     } catch {
@@ -64,4 +54,8 @@ class LocalStorageProvider implements StorageProvider {
 
 export function createLocalStorageProvider(): StorageProvider {
   return new LocalStorageProvider();
+}
+
+export function getLocalUploadFilePath(parts: string[]): string {
+  return path.join(getDefaultUploadDir(), ...parts);
 }

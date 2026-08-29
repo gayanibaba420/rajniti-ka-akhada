@@ -1,20 +1,15 @@
 import type { MetadataRoute } from "next";
 import { getCategories, getPublishedArticles } from "@/lib/articles";
-import { getPublicSiteConfig } from "@/lib/public-data";
-import { siteConfig as fallbackConfig } from "@/lib/data";
+import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const config = (await getPublicSiteConfig()) ?? fallbackConfig;
-  let articles: Awaited<ReturnType<typeof getPublishedArticles>> = [];
-  let categories: Awaited<ReturnType<typeof getCategories>> = [];
-
-  try {
-    [articles, categories] = await Promise.all([getPublishedArticles({ limit: 5000 }), getCategories()]);
-  } catch {
-    // return minimal sitemap on DB failure
-  }
+  const config = await getPublicSiteConfig();
+  const [articles, categories] = await Promise.all([
+    safeDbQuery(() => getPublishedArticles({ limit: 5000 }), []),
+    safeDbQuery(() => getCategories(), []),
+  ]);
 
   return [
     { url: config.url, lastModified: new Date(), changeFrequency: "hourly", priority: 1 },

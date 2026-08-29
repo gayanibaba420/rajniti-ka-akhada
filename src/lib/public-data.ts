@@ -1,13 +1,14 @@
-import { checkDbConnection } from "./db";
 import { getSiteConfig } from "./articles";
+import { siteConfig as fallbackConfig } from "./data";
+import { checkDbConnection } from "./db";
 
 export async function getPublicSiteConfig() {
   try {
     const ok = await checkDbConnection();
-    if (!ok) return null;
+    if (!ok) return fallbackConfig;
     return await getSiteConfig();
   } catch {
-    return null;
+    return fallbackConfig;
   }
 }
 
