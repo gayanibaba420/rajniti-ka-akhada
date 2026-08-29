@@ -1,84 +1,93 @@
-# राजनीति का अखाड़ा
+# राजनीति का अखाड़ा — Production CMS
 
-“हिंदी समाचार • निष्पक्ष विचार” — हरियाणा और हिसार केंद्रित, मोबाइल-फर्स्ट हिंदी डिजिटल न्यूज़ पोर्टल का पूर्ण डेमो। Next.js App Router, TypeScript, Tailwind CSS और स्थानीय SVG संपादकीय विज़ुअल पर निर्मित।
+Hindi news portal with PostgreSQL, JWT auth, full CMS, and DB-backed public pages.
 
-## फीचर
+## Stack
 
-- प्रीमियम होमपेज: ब्रेकिंग टिकर, लीड स्टोरी, लाइव अपडेट, हिसार स्पेशल, हरियाणा और सभी प्रमुख श्रेणियां
-- श्रेणी, लेख और खोज रूट; फिल्टर, पेजिनेशन, खाली/लोडिंग/error/404 अवस्थाएं
-- लेख में metadata, शेयर/सेव, हाइलाइट, लेखक, टैग, टिप्पणी डेमो, संबंधित और विज्ञापन स्लॉट
-- पूर्ण CMS डेमो: आंकड़े, पोस्ट सूची/एडिटर, मीडिया लाइब्रेरी, ब्रेकिंग, लेखक/भूमिका, टिप्पणी, विज्ञापन, SEO और सेटिंग्स
-- persisted dark mode, responsive navigation, keyboard focus, semantic HTML और reduced-motion समर्थन
-- SEO: canonical, Open Graph, Twitter, NewsArticle/Breadcrumb/Organization JSON-LD, sitemap, robots और RSS
-- typed content repository interface, Zod validation और sanitization pattern
+- Next.js App Router + TypeScript + Tailwind CSS
+- PostgreSQL + Prisma ORM
+- JWT session auth (httpOnly cookies, bcrypt passwords)
+- Local/S3/Cloudinary storage abstraction for media
 
-सभी समाचार और आंकड़े स्पष्ट रूप से डेमो सामग्री हैं। कोई बाहरी/hotlinked इमेज नहीं है।
+## Local development
 
-## स्थानीय विकास
-
-Node.js 20.9+ आवश्यक है।
+**Requirements:** Node.js 20.9+, PostgreSQL 16+
 
 ```bash
 npm ci
-cp .env.example .env.local
+cp .env.example .env
+# Edit DATABASE_URL, AUTH_SECRET (min 32 chars), NEXT_PUBLIC_SITE_URL
+
+npm run db:setup   # migrate + seed DEMO data
 npm run dev -- --hostname 0.0.0.0 --port 43127
 ```
 
-फिर `http://localhost:43127` खोलें। गुणवत्ता जांच:
+Open http://localhost:43127
+
+### Seed credentials (DEMO)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | admin@rajnitikaakhada.in | Admin@12345 |
+| Editor | editor@rajnitikaakhada.in | Editor@12345 |
+| Author | author@rajnitikaakhada.in | Author@12345 |
+
+## Environment variables
+
+See `.env.example` for all variable names. Never commit secrets.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | Yes | PostgreSQL connection |
+| `AUTH_SECRET` | Yes | JWT signing (32+ chars) |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Canonical URL, sitemap, RSS |
+| `STORAGE_PROVIDER` | Yes | `local`, `s3`, or `cloudinary` |
+| `STORAGE_LOCAL_PATH` | local | Upload directory (default `./uploads`) |
+| `CRON_SECRET` | Yes | Protects `/api/cron/publish` |
+| AWS / Cloudinary vars | s3/cloudinary | Media upload in production |
+
+## CMS (`/admin`)
+
+- Login required (middleware + API protection)
+- Articles: create/edit/publish/draft/schedule/feature/breaking/trending
+- Media library with local upload (S3/Cloudinary when configured)
+- Breaking news, ads, comments moderation, analytics, SEO settings
+
+## Scheduled publishing
+
+Call `GET` or `POST` `/api/cron/publish` with header:
+
+```
+Authorization: Bearer <CRON_SECRET>
+```
+
+Configure Vercel Cron or external scheduler every 1–5 minutes.
+
+## Production deployment
+
+1. **PostgreSQL** — Create database (Neon, Supabase, RDS, etc.)
+2. **Set env vars** on host (Vercel/Railway/VPS)
+3. **Run migrations:** `npx prisma migrate deploy`
+4. **Seed (optional):** `npm run db:seed`
+5. **Build:** `npm run build && npm start`
+6. **Cron:** Schedule `/api/cron/publish`
+7. **Domain:** Point DNS → set `NEXT_PUBLIC_SITE_URL=https://your-domain.in`
+8. **Storage:** For production, set `STORAGE_PROVIDER=s3` or `cloudinary` with credentials
+
+### Media storage (production)
+
+**S3:** Set `STORAGE_PROVIDER=s3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET`, `AWS_S3_REGION`
+
+**Cloudinary:** Set `STORAGE_PROVIDER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+
+Without credentials, uploads return 503 with a clear message — no fake uploads.
+
+## Scripts
 
 ```bash
 npm run lint
 npm run typecheck
 npm run build
+npm run db:migrate
+npm run db:seed
 ```
-
-## पर्यावरण चर
-
-| नाम | उपयोग |
-| --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | canonical, sitemap, RSS और JSON-LD का सार्वजनिक origin; trailing slash के बिना |
-| `ADMIN_USER` | Basic Auth डेमो उपयोगकर्ता |
-| `ADMIN_PASSWORD` | लंबा random secret; source control में कभी न रखें |
-
-विकास में दोनों admin चर न होने पर `/admin` खुला रहता है ताकि UI का मूल्यांकन हो सके। production में middleware **fail closed** करता है और अनुपस्थित credentials पर 503 देता है। दोनों सेट होने पर browser Basic Auth challenge मिलता है।
-
-## CMS डेमो
-
-`/admin` पर dashboard और सभी संपादकीय अनुभाग उपलब्ध हैं। पोस्ट बनाना, status बदलना, मीडिया चुनना, टिप्पणी/breaking toggles और settings save स्थानीय UI interactions हैं; refresh पर reset होते हैं। `src/lib/content-service.ts` में storage-agnostic repository contract और validated input schema है, इसलिए PostgreSQL/SQL adapter को UI/data contracts बदले बिना जोड़ा जा सकता है।
-
-### उत्पादन सुरक्षा चेकलिस्ट
-
-यह client-side CMS persistence उत्पादन सुरक्षा नहीं है। लाइव करने से पहले:
-
-1. Basic Auth को Auth.js/विश्वसनीय OIDC SSO और server-side sessions से बदलें; MFA, session rotation और CSRF protection लागू करें।
-2. हर mutation को Route Handler/Server Action पर role (`admin`, `editor`, `reporter`, `moderator`) और ownership के साथ authorize करें। UI visibility को authorization न मानें।
-3. PostgreSQL जैसे डेटाबेस में migration, constraints, revision history, soft delete और immutable audit log जोड़ें।
-4. rich text को server पर allowlist sanitizer से साफ करें; parameterized queries और rate limits लगाएं।
-5. मीडिया को private signed-upload flow, MIME/magic-byte जांच, size limits, malware scan और image re-encoding के बाद object storage/CDN में रखें।
-6. comments में abuse/spam detection, moderation queue और privacy-compliant IP retention लगाएं।
-7. secrets केवल deployment secret manager में रखें; CSP, HSTS और production observability/alerts जोड़ें।
-
-## डिप्लॉयमेंट और डोमेन
-
-Vercel पर repository import करें या किसी Node host पर:
-
-```bash
-npm ci
-npm run build
-npm start -- --hostname 0.0.0.0 --port 3000
-```
-
-Deployment panel में ऊपर के environment variables सेट करें। Custom domain का DNS provider के निर्देशानुसार `A`/`CNAME` record जोड़ें, HTTPS सक्रिय होने के बाद `NEXT_PUBLIC_SITE_URL=https://आपका-डोमेन` सेट करके फिर deploy करें। Reverse proxy उपयोग करते समय original HTTPS host सुरक्षित रखें। CDN पर `/_next/static` immutable cache हो सकता है; HTML/RSS को origin के cache headers के अनुसार रखें।
-
-## संरचना
-
-- `src/lib/data.ts` — typed demo domain data और selectors
-- `src/lib/content-service.ts` — database-ready repository/validation boundary
-- `src/components` — reusable shell, ticker, cards, ads और article interactions
-- `src/app/category/[slug]`, `article/[slug]`, `search` — सार्वजनिक routes
-- `src/app/admin` — interactive CMS demonstration
-- `src/proxy.ts` — protected admin route boundary
-
-## संपादकीय/तकनीकी नोट
-
-Noto Sans Devanagari को `next/font` subset और font swapping के साथ self-hosted build asset में बदला जाता है। स्थानीय SVG assets `next/image` से optimized layout में render होते हैं। वास्तविक newsroom में publication timezone, legal pages, corrections workflow, News sitemap और analytics consent को संगठन की नीति के अनुसार कॉन्फ़िगर करें।

@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
+    remotePatterns: [],
+    unoptimized: process.env.STORAGE_PROVIDER === "local",
   },
   async headers() {
     return [

@@ -8,8 +8,8 @@
 # production
 /build
 
-# local
-.DS_Store
+# local uploads
+/uploads/
 *.pem
 .env*
 !.env.example
