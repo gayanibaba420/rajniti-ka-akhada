@@ -2,22 +2,21 @@ import type { Metadata } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
-import { getSiteUrl, type SiteConfig } from "@/lib/data";
+import { BRAND_ASSETS, getSiteUrl, type SiteConfig } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import "./globals.css";
 
 const noto = Noto_Sans_Devanagari({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-noto", weight: ["400", "500", "600", "700", "800", "900"] });
 
 function absoluteAssetUrl(baseUrl: string, path: string): string {
-  if (!path) return `${baseUrl}/news-assembly.svg`;
+  if (!path) return `${baseUrl}${BRAND_ASSETS.logo}`;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getPublicSiteConfig();
-  const ogImage = absoluteAssetUrl(config.url, config.logo || "/news-assembly.svg");
-  const favicon = config.favicon || "/news-assembly.svg";
+  const ogImage = absoluteAssetUrl(config.url, BRAND_ASSETS.logo);
 
   return {
     metadataBase: new URL(getSiteUrl()),
@@ -40,7 +39,10 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [ogImage],
     },
     robots: { index: true, follow: true },
-    icons: { icon: favicon },
+    icons: {
+      icon: [{ url: BRAND_ASSETS.favicon }, { url: BRAND_ASSETS.logo, type: "image/jpeg", sizes: "1024x683" }],
+      apple: BRAND_ASSETS.appleTouchIcon,
+    },
     ...(config.gscVerification ? { verification: { google: config.gscVerification } } : {}),
   };
 }
@@ -57,7 +59,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     "@type": "NewsMediaOrganization",
     name: site.name,
     url: site.url,
-    logo: absoluteAssetUrl(site.url, site.logo || "/news-assembly.svg"),
+    logo: absoluteAssetUrl(site.url, BRAND_ASSETS.logo),
   };
 
   return (

@@ -5,23 +5,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video as Youtube, X } from "lucide-react";
-import type { SiteConfig } from "@/lib/data";
+import { BRAND_ASSETS, type SiteConfig } from "@/lib/data";
 import type { PublicCategory } from "@/lib/types";
 import { BreakingTickerClient } from "./breaking-ticker";
 
-function SiteLogoMark({ name, logo }: { name: string; logo: string }) {
-  const initial = name.trim().charAt(0) || "र";
-  if (logo) {
-    return (
-      <span className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-[#e8a526] ring-offset-2">
-        <Image src={logo} alt={`${name} लोगो`} fill className="object-cover" sizes="44px" unoptimized />
-      </span>
-    );
-  }
+function SiteBrandLogo() {
   return (
-    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#a71d2a] text-2xl font-black text-white ring-2 ring-[#e8a526] ring-offset-2">
-      {initial}
-    </span>
+    <Image
+      src={BRAND_ASSETS.logo}
+      alt={BRAND_ASSETS.logoAlt}
+      width={BRAND_ASSETS.logoWidth}
+      height={BRAND_ASSETS.logoHeight}
+      className="h-9 w-auto shrink-0 object-contain object-left sm:h-12 md:h-14"
+      priority
+      unoptimized
+    />
   );
 }
 
@@ -122,13 +120,7 @@ export function SiteHeader({
         <div className="container-main flex min-h-20 items-center justify-between gap-3 py-3">
           <button onClick={() => setMenu(!menu)} className="btn btn-ghost !p-2.5 lg:hidden" aria-label="मेन्यू खोलें"><Menu size={20} /></button>
           <Link href="/" className="group min-w-0 leading-none" aria-label={`${site.name} होम`}>
-            <div className="flex items-center gap-2">
-              <SiteLogoMark name={site.name} logo={site.logo} />
-              <div className="min-w-0">
-                <SiteBrandTitle name={site.name} />
-                <div className="muted mt-1 truncate text-[10px] font-bold tracking-[.15em] sm:text-xs">{site.tagline}</div>
-              </div>
-            </div>
+            <SiteBrandLogo />
           </Link>
           <div className="flex items-center gap-2"><button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button><ThemeButton /></div>
         </div>

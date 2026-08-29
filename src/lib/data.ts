@@ -9,6 +9,16 @@ export function getSiteUrl(): string {
   return process.env.NODE_ENV === "production" ? PRODUCTION_SITE_URL : LOCAL_SITE_URL;
 }
 
+/** Bundled brand assets — always used; not overridden by admin settings. */
+export const BRAND_ASSETS = {
+  logo: "/brand-logo.jpg",
+  favicon: "/favicon.ico",
+  appleTouchIcon: "/apple-touch-icon.png",
+  logoAlt: "राजनीति का अखाड़ा",
+  logoWidth: 1024,
+  logoHeight: 683,
+} as const;
+
 export type SiteConfig = {
   name: string;
   tagline: string;
@@ -32,8 +42,8 @@ const SITE_DEFAULTS: Omit<SiteConfig, "url"> = {
   description: "हरियाणा, हिसार, राजनीति और देश-दुनिया की विश्वसनीय हिंदी खबरें।",
   email: "sampark@rajnitikaakhada.in",
   phone: "",
-  logo: "",
-  favicon: "/news-assembly.svg",
+  logo: BRAND_ASSETS.logo,
+  favicon: BRAND_ASSETS.favicon,
   headerNotice: "",
   seoKeywords: "",
   gscVerification: "",
@@ -51,8 +61,8 @@ export function buildSiteConfig(settings: Record<string, string> = {}): SiteConf
     url: getSiteUrl(),
     email: settings.contact_email?.trim() || SITE_DEFAULTS.email,
     phone: settings.contact_phone?.trim() || SITE_DEFAULTS.phone,
-    logo: settings.site_logo?.trim() || SITE_DEFAULTS.logo,
-    favicon: settings.site_favicon?.trim() || SITE_DEFAULTS.favicon,
+    logo: BRAND_ASSETS.logo,
+    favicon: BRAND_ASSETS.favicon,
     headerNotice: settings.header_notice?.trim() || SITE_DEFAULTS.headerNotice,
     seoKeywords: settings.seo_keywords?.trim() || SITE_DEFAULTS.seoKeywords,
     gscVerification: settings.gsc_verification?.trim() || SITE_DEFAULTS.gscVerification,
