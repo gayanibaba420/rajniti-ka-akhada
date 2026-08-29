@@ -9,7 +9,7 @@ import {
 } from "@/lib/articles";
 import { computeReadTimeMinutes, slugify } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
-import { articleInputSchema } from "@/lib/validators";
+import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
 
-    const input = articleInputSchema.parse(await request.json());
+    const input = articleInputSchema.parse(prepareArticleInput(await request.json()));
     const content = parseContentInput(input.content);
     const readTimeMinutes = computeReadTimeMinutes(content);
 

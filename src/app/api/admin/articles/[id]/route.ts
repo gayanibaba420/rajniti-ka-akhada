@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { parseContentInput, syncArticleTags, upsertTags } from "@/lib/articles";
 import { computeReadTimeMinutes } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
-import { articleInputSchema } from "@/lib/validators";
+import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,7 +34,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
     if (!existing) return jsonError("लेख नहीं मिला", 404);
     if (!canEditArticle(session.role, session.id, existing.createdById)) return jsonError("अनुमति नहीं", 403);
 
-    const input = articleInputSchema.partial().parse(await request.json());
+    const input = articleInputSchema.partial().parse(
+      prepareArticleInput(await request.json(), { existingStatus: existing.status }),
+    );
     const content = input.content ? parseContentInput(input.content) : undefined;
     const readTimeMinutes = content ? computeReadTimeMinutes(content) : undefined;
 

@@ -319,6 +319,12 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (title.trim().length < 10) { setError("शीर्षक कम से कम 10 अक्षर"); return; }
+    if (!categoryId) { setError("श्रेणी चुनें"); return; }
+    if (!authorId) { setError("लेखक चुनें"); return; }
+    if (status !== "DRAFT") {
+      if (excerpt.trim().length < 20) { setError("प्रकाशन के लिए सारांश कम से कम 20 अक्षर"); return; }
+      if (!body.trim()) { setError("प्रकाशन के लिए मुख्य सामग्री आवश्यक है"); return; }
+    }
     setSaving(true);
     const payload = {
       title, slug: slug || slugify(title), excerpt, content, highlight, location, status,

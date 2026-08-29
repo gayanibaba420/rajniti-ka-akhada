@@ -65,3 +65,33 @@ export const commentModerationSchema = z.object({
 });
 
 export type ArticleInput = z.infer<typeof articleInputSchema>;
+
+const EMPTY_CONTENT_BLOCK = [{ type: "paragraph", text: "" }] as const;
+
+/** Fill draft-safe defaults so title-only saves work before excerpt/body are written. */
+export function prepareArticleInput(
+  raw: unknown,
+  options?: { existingStatus?: string },
+): Record<string, unknown> {
+  const data =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? { ...(raw as Record<string, unknown>) }
+      : {};
+
+  const status =
+    typeof data.status === "string" ? data.status : options?.existingStatus ?? "DRAFT";
+  const isDraft = status === "DRAFT";
+
+  if (isDraft) {
+    const title = typeof data.title === "string" ? data.title.trim() : "";
+    const excerpt = typeof data.excerpt === "string" ? data.excerpt.trim() : "";
+    if (!("excerpt" in data) || excerpt.length < 20) {
+      data.excerpt = (title || excerpt).slice(0, 280) || " ";
+    }
+    if (!("content" in data) || !Array.isArray(data.content) || data.content.length === 0) {
+      data.content = [...EMPTY_CONTENT_BLOCK];
+    }
+  }
+
+  return data;
+}
