@@ -85,7 +85,7 @@ export async function findOrCreateAuthorByName(name: string, userId?: string | n
   });
   if (existing) return existing;
 
-  let baseSlug = authorSlugFromName(trimmed);
+  const baseSlug = authorSlugFromName(trimmed);
   let slug = baseSlug;
   let suffix = 2;
   while (await prisma.author.findUnique({ where: { slug } })) {

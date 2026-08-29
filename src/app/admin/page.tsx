@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BellRing,
+  BookOpen,
   FilePenLine,
   FolderTree,
   ImageIcon,
@@ -17,9 +18,11 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { BlogEditor } from "@/components/admin/blog-editor";
 import { PostEditor } from "@/components/admin/post-editor";
 import {
   AdsPanel,
+  BlogsPanel,
   BreakingPanel,
   CategoriesPanel,
   CommentsPanel,
@@ -29,11 +32,12 @@ import {
   SettingsPanelUnified,
 } from "@/components/admin/panels";
 import { ErrorBlock } from "@/components/admin/shared";
-import type { AdminSection, AnalyticsSummary, ArticleRow, Meta, User } from "@/components/admin/types";
+import type { AdminSection, AnalyticsSummary, ArticleRow, BlogRow, Meta, User } from "@/components/admin/types";
 
 const sections = [
   ["dashboard", "डैशबोर्ड", LayoutDashboard],
   ["posts", "समाचार", FilePenLine],
+  ["blogs", "ब्लॉग", BookOpen],
   ["media", "मीडिया", ImageIcon],
   ["categories", "श्रेणियाँ", FolderTree],
   ["breaking", "ब्रेकिंग", BellRing],
@@ -47,10 +51,12 @@ export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [blogs, setBlogs] = useState<BlogRow[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [active, setActive] = useState<AdminSection>("dashboard");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [editing, setEditing] = useState<ArticleRow | null | "new">(null);
+  const [editingBlog, setEditingBlog] = useState<BlogRow | null | "new">(null);
   const [notice, setNotice] = useState("");
   const [dbError, setDbError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -69,14 +75,16 @@ export default function AdminPage() {
         return;
       }
       setUser(me.user);
-      const [metaRes, articlesRes, analyticsRes] = await Promise.all([
+      const [metaRes, articlesRes, blogsRes, analyticsRes] = await Promise.all([
         fetch("/api/admin/meta"),
         fetch("/api/admin/articles"),
+        fetch("/api/admin/blogs"),
         fetch("/api/admin/analytics"),
       ]);
       if (!metaRes.ok || !articlesRes.ok) throw new Error("DB");
       setMeta(await metaRes.json());
       setArticles((await articlesRes.json()).articles ?? []);
+      if (blogsRes.ok) setBlogs((await blogsRes.json()).blogs ?? []);
       if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
       setDbError("");
     } catch {
@@ -93,6 +101,11 @@ export default function AdminPage() {
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/admin/login");
+  }
+
+  function clearEditors() {
+    setEditing(null);
+    setEditingBlog(null);
   }
 
   const content = useMemo(() => {
@@ -119,13 +132,50 @@ export default function AdminPage() {
         />
       );
     }
+    if (editingBlog && meta) {
+      return (
+        <BlogEditor
+          meta={meta}
+          blog={editingBlog === "new" ? null : editingBlog}
+          currentUser={user}
+          close={() => setEditingBlog(null)}
+          onSaved={(msg) => {
+            setEditingBlog(null);
+            load();
+            flash(msg ?? "सुरक्षित किया गया");
+          }}
+        />
+      );
+    }
     switch (active) {
       case "posts":
         return (
           <PostsPanel
             articles={articles}
-            edit={(a) => setEditing(a)}
-            create={() => setEditing("new")}
+            edit={(a) => {
+              clearEditors();
+              setEditing(a);
+            }}
+            create={() => {
+              clearEditors();
+              setEditing("new");
+            }}
+            onRefresh={load}
+            flash={flash}
+          />
+        );
+      case "blogs":
+        return (
+          <BlogsPanel
+            blogs={blogs}
+            edit={(b) => {
+              clearEditors();
+              setEditingBlog(b);
+            }}
+            create={() => {
+              clearEditors();
+              setEditingBlog("new");
+            }}
             onRefresh={load}
             flash={flash}
           />
@@ -147,12 +197,17 @@ export default function AdminPage() {
           <DashboardPanel
             analytics={analytics}
             articles={articles}
-            create={() => setEditing("new")}
+            create={() => {
+              clearEditors();
+              setEditing("new");
+            }}
             openPosts={() => setActive("posts")}
           />
         );
     }
-  }, [active, editing, articles, analytics, meta, dbError, load, flash, loading, user]);
+  }, [active, editing, editingBlog, articles, blogs, analytics, meta, dbError, load, flash, loading, user]);
+
+  const isEditing = Boolean(editing || editingBlog);
 
   if (!user && !dbError && loading) {
     return (
@@ -188,11 +243,11 @@ export default function AdminPage() {
             <button
               onClick={() => {
                 setActive(id);
-                setEditing(null);
+                clearEditors();
                 setMobileMenu(false);
               }}
               key={id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !editing ? "bg-[#a71d2a]" : "hover:bg-white/10"}`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !isEditing ? "bg-[#a71d2a]" : "hover:bg-white/10"}`}
             >
               <Icon size={18} />
               {label}

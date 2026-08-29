@@ -82,13 +82,59 @@ export const siteSettingSchema = z.object({
   settings: z.record(z.string(), z.string()),
 });
 
+export const blogInputSchema = z
+  .object({
+    title: z.string().trim().min(10).max(160),
+    slug: z.string().regex(/^[a-z0-9-]+$/).max(180),
+    excerpt: z.string().trim().min(20).max(280),
+    authorId: z.string().min(1).optional(),
+    authorName: z.string().trim().min(2).max(80).optional(),
+    content: z.array(z.record(z.string(), z.unknown())).min(1),
+    status: z.enum(["DRAFT", "PUBLISHED"]),
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    featuredImageId: z.string().nullable().optional(),
+    tags: z.array(z.string()).optional(),
+    publishedAt: z.string().datetime().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.authorId && !data.authorName?.trim()) {
+      ctx.addIssue({ code: "custom", message: "लेखक आवश्यक है", path: ["authorName"] });
+    }
+  });
+
 export const commentModerationSchema = z.object({
   approved: z.boolean(),
 });
 
 export type ArticleInput = z.infer<typeof articleInputSchema>;
+export type BlogInput = z.infer<typeof blogInputSchema>;
 
 const EMPTY_CONTENT_BLOCK = [{ type: "paragraph", text: "" }] as const;
+
+/** Fill draft-safe defaults so title-only saves work before excerpt/body are written. */
+export function prepareBlogInput(raw: unknown): Record<string, unknown> {
+  const data =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? { ...(raw as Record<string, unknown>) }
+      : {};
+
+  const status = typeof data.status === "string" ? data.status : "DRAFT";
+  const isDraft = status === "DRAFT";
+
+  if (isDraft) {
+    const title = typeof data.title === "string" ? data.title.trim() : "";
+    const excerpt = typeof data.excerpt === "string" ? data.excerpt.trim() : "";
+    if (!("excerpt" in data) || excerpt.length < 20) {
+      data.excerpt = (title || excerpt).slice(0, 280) || " ";
+    }
+    if (!("content" in data) || !Array.isArray(data.content) || data.content.length === 0) {
+      data.content = [...EMPTY_CONTENT_BLOCK];
+    }
+  }
+
+  return data;
+}
 
 /** Fill draft-safe defaults so title-only saves work before excerpt/body are written. */
 export function prepareArticleInput(

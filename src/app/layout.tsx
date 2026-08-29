@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
+import { BackToTopButton } from "@/components/back-to-top";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
 import { BRAND_ASSETS, getSiteUrl, type SiteConfig } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <SiteHeader site={site} categories={categories} breakingItems={breaking} />
         <main id="main-content">{children}</main>
         <SiteFooter site={site} />
+        <BackToTopButton />
       </body>
     </html>
   );

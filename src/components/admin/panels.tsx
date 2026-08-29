@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Copy, Plus, Trash2 } from "lucide-react";
-import { AD_POSITION_LABELS, STATUS_LABELS, slugify } from "@/lib/types";
+import { AD_POSITION_LABELS, BLOG_STATUS_LABELS, STATUS_LABELS, slugify } from "@/lib/types";
 import { HOMEPAGE_SECTION_KEYS } from "@/lib/homepage-settings";
 import { ErrorBlock, LoadingBlock, PanelHeader, StorageBanner } from "./shared";
-import type { AnalyticsSummary, ArticleRow } from "./types";
+import type { AnalyticsSummary, ArticleRow, BlogRow } from "./types";
 
 const SETTING_LABELS: Record<string, string> = {
   site_name: "वेबसाइट नाम",
@@ -1114,5 +1114,148 @@ export function SettingsPanelUnified({ flash }: { flash: (s: string) => void }) 
         </form>
       )}
     </div>
+  );
+}
+
+export function BlogsPanel({
+  blogs,
+  edit,
+  create,
+  onRefresh,
+  flash,
+}: {
+  blogs: BlogRow[];
+  edit: (b: BlogRow) => void;
+  create: () => void;
+  onRefresh: () => void;
+  flash: (s: string) => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const filtered = blogs.filter((b) => {
+    const matchText = !filter.trim() || b.title.toLowerCase().includes(filter.toLowerCase());
+    const matchStatus = statusFilter === "ALL" || b.status === statusFilter;
+    return matchText && matchStatus;
+  });
+
+  async function remove(blog: BlogRow) {
+    if (!window.confirm(`"${blog.title}" हटाएं?`)) return;
+    const res = await fetch(`/api/admin/blogs/${blog.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    flash(res.ok ? (data.message ?? "हटाया गया") : (data.error ?? "त्रुटि"));
+    if (res.ok) onRefresh();
+  }
+
+  async function updateStatus(blog: BlogRow, nextStatus: string) {
+    const res = await fetch(`/api/admin/blogs/${blog.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: nextStatus,
+        title: blog.title,
+        slug: blog.slug,
+        excerpt: blog.excerpt,
+        content: blog.content,
+        authorName: blog.author.name,
+        tags: blog.tags,
+        seoTitle: blog.seoTitle ?? "",
+        seoDescription: blog.seoDescription ?? "",
+        featuredImageId: blog.featuredImage?.id ?? null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    flash(res.ok ? "स्थिति अपडेट" : (data.error ?? "त्रुटि"));
+    if (res.ok) onRefresh();
+  }
+
+  return (
+    <>
+      <PanelHeader
+        title="ब्लॉग"
+        subtitle="विशेष लेख और विश्लेषण प्रबंधित करें"
+        action={
+          <button onClick={create} className="btn btn-primary">
+            <Plus size={18} /> ब्लॉग जोड़ें
+          </button>
+        }
+      />
+      <div className="mt-6 flex flex-wrap gap-3">
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="input max-w-xs"
+          placeholder="शीर्षक खोजें..."
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input max-w-[180px]">
+          <option value="ALL">सभी स्थिति</option>
+          {Object.keys(BLOG_STATUS_LABELS).map((s) => (
+            <option key={s} value={s}>
+              {BLOG_STATUS_LABELS[s as keyof typeof BLOG_STATUS_LABELS]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="surface mt-6 overflow-x-auto rounded-xl">
+        <table className="w-full min-w-[720px] text-left text-sm">
+          <thead>
+            <tr className="border-b text-xs uppercase tracking-wide" style={{ borderColor: "var(--line)" }}>
+              <th className="p-4">शीर्षक</th>
+              <th className="p-4">लेखक</th>
+              <th className="p-4">स्थिति</th>
+              <th className="p-4">व्यू</th>
+              <th className="p-4">कार्रवाई</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((blog) => (
+              <tr className="border-b last:border-0" style={{ borderColor: "var(--line)" }} key={blog.id}>
+                <td className="p-4">
+                  <p className="line-clamp-2 font-bold">{blog.title}</p>
+                  <span className="muted text-xs">/{blog.slug}</span>
+                </td>
+                <td className="p-4">{blog.author.name}</td>
+                <td className="p-4">
+                  <select
+                    value={blog.status}
+                    onChange={(e) => updateStatus(blog, e.target.value)}
+                    className="input !py-1 text-xs"
+                  >
+                    {Object.keys(BLOG_STATUS_LABELS).map((s) => (
+                      <option key={s} value={s}>
+                        {BLOG_STATUS_LABELS[s as keyof typeof BLOG_STATUS_LABELS]}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="p-4">{blog.viewCount.toLocaleString("hi-IN")}</td>
+                <td className="p-4">
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => edit(blog)} className="btn btn-ghost text-xs">
+                      संपादित
+                    </button>
+                    {blog.status === "PUBLISHED" && (
+                      <a href={`/blog/${blog.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost text-xs">
+                        देखें
+                      </a>
+                    )}
+                    <button onClick={() => remove(blog)} className="btn btn-ghost text-xs text-red-600">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!filtered.length && (
+              <tr>
+                <td colSpan={5} className="muted p-10 text-center">
+                  {blogs.length ? "कोई परिणाम नहीं" : "अभी कोई ब्लॉग नहीं — नया ब्लॉग जोड़ें"}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

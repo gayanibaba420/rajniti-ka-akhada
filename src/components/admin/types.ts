@@ -8,6 +8,22 @@ export type Meta = {
   tags: Array<{ id: string; name: string }>;
 };
 
+export type BlogRow = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  status: string;
+  viewCount: number;
+  content: ContentBlock[];
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  tags: string[];
+  publishedAt?: string | null;
+  author: { id: string; name: string };
+  featuredImage?: { id: string; url: string; alt?: string | null } | null;
+};
+
 export type ArticleRow = {
   id: string;
   slug: string;
@@ -47,6 +63,7 @@ export type AnalyticsSummary = {
 export type AdminSection =
   | "dashboard"
   | "posts"
+  | "blogs"
   | "media"
   | "categories"
   | "breaking"

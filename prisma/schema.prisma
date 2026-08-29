@@ -21,6 +21,11 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum FacebookPublishStatus {
   PENDING
   SUCCESS
@@ -52,14 +57,15 @@ model User {
 }
 
 model Author {
-  id       String    @id @default(cuid())
-  userId   String?   @unique
-  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  name     String
-  slug     String    @unique
-  bio      String?
-  avatar   String?
-  articles Article[]
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  slug      String     @unique
+  bio       String?
+  avatar    String?
+  articles  Article[]
+  blogPosts BlogPost[]
 }
 
 model Category {
@@ -143,7 +149,7 @@ model ArticleTag {
 }
 
 model Media {
-  id         String    @id @default(cuid())
+  id         String     @id @default(cuid())
   filename   String
   url        String
   mimeType   String
@@ -152,9 +158,34 @@ model Media {
   caption    String?
   credit     String?
   storageKey String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  articles   Article[] @relation("FeaturedImage")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  articles   Article[]  @relation("FeaturedImage")
+  blogPosts  BlogPost[] @relation("BlogFeaturedImage")
+}
+
+model BlogPost {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  title           String
+  excerpt         String
+  content         Json
+  status          BlogStatus @default(DRAFT)
+  viewCount       Int        @default(0)
+  seoTitle        String?
+  seoDescription  String?
+  tags            String[]   @default([])
+  publishedAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  authorId        String
+  author          Author     @relation(fields: [authorId], references: [id])
+  featuredImageId String?
+  featuredImage   Media?     @relation("BlogFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([status])
+  @@index([publishedAt])
 }
 
 model Comment {

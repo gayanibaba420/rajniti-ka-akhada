@@ -49,6 +49,30 @@ export interface PublicCategory {
   description: string;
 }
 
+export interface PublicBlogPost {
+  slug: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  imageAlt: string;
+  author: string;
+  authorSlug: string;
+  publishedAt: string;
+  updatedAt?: string;
+  readTime: string;
+  views: number;
+  content: string[];
+  contentBlocks?: ContentBlock[];
+  tags: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+}
+
+export const BLOG_STATUS_LABELS: Record<"DRAFT" | "PUBLISHED", string> = {
+  DRAFT: "ड्राफ्ट",
+  PUBLISHED: "प्रकाशित",
+};
+
 export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "सुपर एडमिन",
   EDITOR: "संपादक",

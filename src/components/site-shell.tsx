@@ -125,8 +125,8 @@ export function SiteHeader({
           </Link>
           <div className="flex items-center gap-2"><button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button><ThemeButton /></div>
         </div>
-        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}><div className="container-main flex items-center justify-between gap-5 overflow-auto py-3 text-sm font-extrabold"><Link href="/">होम</Link>{categories.map((c) => <Link key={c.slug} href={`/category/${c.slug}`} className="whitespace-nowrap hover:text-[var(--brand)]">{c.name}</Link>)}<Link href="/admin" className="brand">CMS</Link></div></nav>
-        {menu && <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden"><div className="grid grid-cols-2 gap-2">{categories.map((c) => <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">{c.name}</Link>)}<Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link></div></nav>}
+        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}><div className="container-main flex items-center justify-between gap-5 overflow-auto py-3 text-sm font-extrabold"><Link href="/">होम</Link>{categories.map((c) => <Link key={c.slug} href={`/category/${c.slug}`} className="whitespace-nowrap hover:text-[var(--brand)]">{c.name}</Link>)}<Link href="/blog" className="whitespace-nowrap hover:text-[var(--brand)]">ब्लॉग</Link><Link href="/admin" className="brand">CMS</Link></div></nav>
+        {menu && <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden"><div className="grid grid-cols-2 gap-2">{categories.map((c) => <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">{c.name}</Link>)}<Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">ब्लॉग</Link><Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link></div></nav>}
       </header>
       <BreakingTickerClient initialItems={breakingItems} />
       <SearchOverlay open={search} close={() => setSearch(false)} />
@@ -171,7 +171,7 @@ export function SiteFooter({ site }: { site: SiteConfig }) {
             )}
           </div>
         </div>
-        <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
+        <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/blog">ब्लॉग</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
         <NewsletterSignup />
       </div>
       <div className="border-t border-neutral-800 py-5 text-center text-xs text-neutral-500">© {new Date().getFullYear()} {site.name} • सर्वाधिकार सुरक्षित</div>
