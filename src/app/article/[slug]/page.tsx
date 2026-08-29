@@ -9,6 +9,7 @@ import { SidebarList, StoryCard } from "@/components/story-card";
 import { articles, categories, getArticle, getRelated, siteConfig } from "@/lib/data";
 
 type Props = { params: Promise<{ slug: string }> };
+export const dynamicParams = false;
 export function generateStaticParams() { return articles.map((article) => ({ slug: article.slug })); }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = getArticle((await params).slug);

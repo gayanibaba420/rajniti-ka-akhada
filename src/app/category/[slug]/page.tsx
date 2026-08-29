@@ -7,6 +7,7 @@ import { articles, categories, getByCategory, getCategory, siteConfig } from "@/
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> };
 
+export const dynamicParams = false;
 export function generateStaticParams() { return categories.map((category) => ({ slug: category.slug })); }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

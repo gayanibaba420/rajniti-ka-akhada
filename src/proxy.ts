@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { categories } from "@/lib/data";
 
 export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const categoryMatch = pathname.match(/^\/category\/([^/?]+)/);
+  if (categoryMatch && !categories.some((category) => category.slug === categoryMatch[1])) {
+    return NextResponse.rewrite(new URL("/404", request.url), { status: 404 });
+  }
+
+  if (!pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
+
   const configuredUser = process.env.ADMIN_USER;
   const configuredPassword = process.env.ADMIN_PASSWORD;
 
@@ -28,4 +40,4 @@ export function proxy(request: NextRequest) {
   });
 }
 
-export const config = { matcher: ["/admin/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/category/:path*"] };
