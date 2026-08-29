@@ -109,6 +109,7 @@ export default function AdminPage() {
         <PostEditor
           meta={meta}
           article={editing === "new" ? null : editing}
+          currentUser={user}
           close={() => setEditing(null)}
           onSaved={(msg) => {
             setEditing(null);
@@ -151,7 +152,7 @@ export default function AdminPage() {
           />
         );
     }
-  }, [active, editing, articles, analytics, meta, dbError, load, flash, loading]);
+  }, [active, editing, articles, analytics, meta, dbError, load, flash, loading, user]);
 
   if (!user && !dbError && loading) {
     return (

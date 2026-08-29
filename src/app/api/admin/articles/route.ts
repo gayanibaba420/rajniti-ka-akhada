@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import {
   parseContentInput,
   processScheduledPosts,
+  resolveArticleAuthorId,
   syncArticleTags,
   upsertTags,
 } from "@/lib/articles";
@@ -70,6 +71,10 @@ export async function POST(request: NextRequest) {
 
     const tags = await upsertTags(input.tags ?? []);
     const slug = input.slug || slugify(input.title);
+    const authorId = await resolveArticleAuthorId(
+      { authorId: input.authorId, authorName: input.authorName },
+      session.id,
+    );
 
     const article = await prisma.article.create({
       data: {
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
         publishedAt,
         scheduledAt,
         categoryId: input.categoryId,
-        authorId: input.authorId,
+        authorId,
         createdById: session.id,
         featuredImageId: input.featuredImageId ?? null,
       },

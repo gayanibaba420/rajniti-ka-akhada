@@ -19,6 +19,7 @@ const FIELD_LABELS: Record<string, string> = {
   content: "मुख्य सामग्री",
   categoryId: "श्रेणी",
   authorId: "लेखक",
+  authorName: "लेखक",
   status: "स्थिति",
   featuredImageId: "फीचर्ड चित्र",
   scheduledAt: "निर्धारित समय",

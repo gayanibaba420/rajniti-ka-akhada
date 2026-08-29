@@ -10,29 +10,36 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8).max(128),
 });
 
-export const articleInputSchema = z.object({
-  title: z.string().trim().min(10).max(160),
-  slug: z.string().regex(/^[a-z0-9-]+$/).max(180),
-  excerpt: z.string().trim().min(20).max(280),
-  categoryId: z.string().min(1),
-  authorId: z.string().min(1),
-  content: z.array(z.record(z.string(), z.unknown())).min(1),
-  highlight: z.string().optional(),
-  location: z.string().optional(),
-  status: z.enum(["DRAFT", "REVIEW", "PUBLISHED", "SCHEDULED", "ARCHIVED"]),
-  featured: z.boolean().optional(),
-  breaking: z.boolean().optional(),
-  trending: z.boolean().optional(),
-  trendingOverride: z.number().nullable().optional(),
-  seoTitle: z.string().optional(),
-  seoDescription: z.string().optional(),
-  canonicalUrl: z.string().url().optional().or(z.literal("")),
-  videoUrl: z.string().url().optional().or(z.literal("")),
-  featuredImageId: z.string().nullable().optional(),
-  tags: z.array(z.string()).optional(),
-  scheduledAt: z.string().datetime().optional().nullable(),
-  publishedAt: z.string().datetime().optional().nullable(),
-});
+export const articleInputSchema = z
+  .object({
+    title: z.string().trim().min(10).max(160),
+    slug: z.string().regex(/^[a-z0-9-]+$/).max(180),
+    excerpt: z.string().trim().min(20).max(280),
+    categoryId: z.string().min(1),
+    authorId: z.string().min(1).optional(),
+    authorName: z.string().trim().min(2).max(80).optional(),
+    content: z.array(z.record(z.string(), z.unknown())).min(1),
+    highlight: z.string().optional(),
+    location: z.string().optional(),
+    status: z.enum(["DRAFT", "REVIEW", "PUBLISHED", "SCHEDULED", "ARCHIVED"]),
+    featured: z.boolean().optional(),
+    breaking: z.boolean().optional(),
+    trending: z.boolean().optional(),
+    trendingOverride: z.number().nullable().optional(),
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    canonicalUrl: z.string().url().optional().or(z.literal("")),
+    videoUrl: z.string().url().optional().or(z.literal("")),
+    featuredImageId: z.string().nullable().optional(),
+    tags: z.array(z.string()).optional(),
+    scheduledAt: z.string().datetime().optional().nullable(),
+    publishedAt: z.string().datetime().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.authorId && !data.authorName?.trim()) {
+      ctx.addIssue({ code: "custom", message: "लेखक आवश्यक है", path: ["authorName"] });
+    }
+  });
 
 export const breakingNewsSchema = z.object({
   title: z.string().min(3).max(200),

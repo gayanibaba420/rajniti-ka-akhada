@@ -12,16 +12,18 @@ import {
   type ContentBlock,
 } from "@/lib/types";
 import { ErrorBlock, LoadingBlock, MediaPickerModal, PanelHeader, StorageBanner } from "./shared";
-import type { ArticleRow, MediaItem, Meta, StorageStatus } from "./types";
+import type { ArticleRow, MediaItem, Meta, StorageStatus, User } from "./types";
 
 export function PostEditor({
   meta,
   article,
+  currentUser,
   close,
   onSaved,
 }: {
   meta: Meta;
   article: ArticleRow | null;
+  currentUser?: User | null;
   close: () => void;
   onSaved: (message?: string) => void;
 }) {
@@ -35,7 +37,7 @@ export function PostEditor({
   const [location, setLocation] = useState(article?.location ?? "");
   const [status, setStatus] = useState(article?.status ?? "DRAFT");
   const [categoryId, setCategoryId] = useState(article?.category.id ?? meta.categories[0]?.id ?? "");
-  const [authorId, setAuthorId] = useState(article?.author.id ?? meta.authors[0]?.id ?? "");
+  const [authorName, setAuthorName] = useState(article?.author.name ?? currentUser?.name ?? "");
   const [tags, setTags] = useState(article?.tags.map((t) => t.tag.name).join(", ") ?? "");
   const [featured, setFeatured] = useState(article?.featured ?? false);
   const [breaking, setBreaking] = useState(article?.breaking ?? false);
@@ -192,8 +194,8 @@ export function PostEditor({
       setError("श्रेणी चुनें");
       return;
     }
-    if (!authorId) {
-      setError("लेखक चुनें");
+    if (!authorName.trim()) {
+      setError("लेखक का नाम दर्ज करें");
       return;
     }
     if (nextStatus !== "DRAFT") {
@@ -219,7 +221,7 @@ export function PostEditor({
       location,
       status: nextStatus,
       categoryId,
-      authorId,
+      authorName: authorName.trim(),
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       featured,
       breaking,
@@ -425,13 +427,20 @@ export function PostEditor({
             </label>
             <label className="text-sm font-bold">
               लेखक
-              <select value={authorId} onChange={(e) => setAuthorId(e.target.value)} className="input mt-1">
+              <input
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                list="author-suggestions"
+                className="input mt-1"
+                placeholder="अपना नाम या लेखक का नाम लिखें"
+                maxLength={80}
+              />
+              <datalist id="author-suggestions">
                 {meta.authors.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
+                  <option key={a.id} value={a.name} />
                 ))}
-              </select>
+              </datalist>
+              <p className="muted mt-1 text-xs">नया नाम लिखें या पहले उपयोग किए गए नाम में से चुनें</p>
             </label>
             <label className="text-sm font-bold">
               Slug

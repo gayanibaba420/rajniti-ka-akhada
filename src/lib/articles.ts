@@ -2,7 +2,7 @@ import type { Prisma, Article as DbArticle, ArticleStatus } from "@prisma/client
 import { buildSiteConfig } from "./data";
 import { prisma } from "./db";
 import type { ContentBlock, PublicArticle, PublicCategory } from "./types";
-import { blocksToPlainText, computeReadTimeMinutes, formatReadTime } from "./types";
+import { blocksToPlainText, computeReadTimeMinutes, formatReadTime, slugify } from "./types";
 import { tryPublishArticleToFacebook } from "./facebook";
 
 const DEFAULT_IMAGE = "/news-assembly.svg";
@@ -60,6 +60,62 @@ export async function getCategoryBySlug(slug: string) {
 
 export async function getAuthorBySlug(slug: string) {
   return prisma.author.findUnique({ where: { slug } });
+}
+
+function authorSlugFromName(name: string): string {
+  const base = slugify(name);
+  if (base && !base.startsWith("post-")) return base;
+  const ascii = name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return ascii || `author-${Date.now().toString(36)}`;
+}
+
+/** Find an existing author by name (case-insensitive) or create a new Author record. */
+export async function findOrCreateAuthorByName(name: string, userId?: string | null) {
+  const trimmed = name.trim();
+  if (trimmed.length < 2) throw new Error("लेखक का नाम कम से कम 2 अक्षर का होना चाहिए");
+
+  const existing = await prisma.author.findFirst({
+    where: { name: { equals: trimmed, mode: "insensitive" } },
+  });
+  if (existing) return existing;
+
+  let baseSlug = authorSlugFromName(trimmed);
+  let slug = baseSlug;
+  let suffix = 2;
+  while (await prisma.author.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix++;
+  }
+
+  return prisma.author.create({
+    data: {
+      name: trimmed,
+      slug,
+      ...(userId ? { userId } : {}),
+    },
+  });
+}
+
+/** Resolve authorId from either authorName (preferred) or authorId. */
+export async function resolveArticleAuthorId(
+  input: { authorId?: string; authorName?: string },
+  sessionUserId?: string,
+): Promise<string> {
+  if (input.authorName?.trim()) {
+    return (await findOrCreateAuthorByName(input.authorName, sessionUserId)).id;
+  }
+  if (input.authorId) {
+    const author = await prisma.author.findUnique({ where: { id: input.authorId } });
+    if (!author) throw new Error("लेखक नहीं मिला");
+    return author.id;
+  }
+  throw new Error("लेखक आवश्यक है");
 }
 
 export async function getArticlesByAuthor(authorSlug: string, limit = 20) {

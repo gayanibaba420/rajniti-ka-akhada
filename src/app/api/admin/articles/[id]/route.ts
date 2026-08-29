@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { canEditArticle, getSession, requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { parseContentInput, syncArticleTags, upsertTags } from "@/lib/articles";
+import { parseContentInput, resolveArticleAuthorId, syncArticleTags, upsertTags } from "@/lib/articles";
 import { computeReadTimeMinutes } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { revalidatePublicPages } from "@/lib/revalidate";
@@ -54,6 +54,14 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       requireRole(session.role, ["SUPER_ADMIN", "EDITOR"]);
     }
 
+    let authorId: string | undefined;
+    if (input.authorId !== undefined || input.authorName !== undefined) {
+      authorId = await resolveArticleAuthorId(
+        { authorId: input.authorId, authorName: input.authorName },
+        session.id,
+      );
+    }
+
     const article = await prisma.article.update({
       where: { id },
       data: {
@@ -76,7 +84,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         ...(publishedAt !== undefined && { publishedAt }),
         ...(scheduledAt !== undefined && { scheduledAt }),
         ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
-        ...(input.authorId !== undefined && { authorId: input.authorId }),
+        ...(authorId !== undefined && { authorId }),
         ...(input.featuredImageId !== undefined && { featuredImageId: input.featuredImageId }),
       },
     });
