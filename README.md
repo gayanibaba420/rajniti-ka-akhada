@@ -63,14 +63,57 @@ Authorization: Bearer <CRON_SECRET>
 
 Configure Vercel Cron or external scheduler every 1–5 minutes.
 
-## Production deployment
+## Production deployment (Vercel)
+
+The site shows **"सेवा अस्थायी रूप से अनुपलब्ध"** until `DATABASE_URL` is configured on Vercel.
+
+### Fastest fix (2 minutes)
+
+**Option A — Vercel Postgres (easiest, no manual copy-paste):**
+
+1. Open [Vercel Storage](https://vercel.com/dashboard/stores) → **Create Database** → **Postgres** (Neon)
+2. **Connect** it to your `rajniti-ka-akhada` project
+3. **Redeploy** — `prisma migrate deploy` runs automatically during build (`build:vercel` script)
+4. Seed admin users once (from your machine or Vercel shell):
+
+```bash
+export DATABASE_URL='(copy from Vercel → Storage → .env.local tab)'
+npm run db:seed
+```
+
+**Option B — Neon free tier:**
+
+1. Create a project at [neon.tech](https://neon.tech) → copy the **pooled** connection string (`?sslmode=require`)
+2. Run the one-command setup script:
+
+```bash
+export DATABASE_URL='postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require'
+export VERCEL_TOKEN='your-token-from-vercel.com/account/tokens'   # optional
+./scripts/setup-production.sh
+```
+
+The script migrates, seeds demo data, and (with `VERCEL_TOKEN`) pushes env vars + redeploys.
+
+### Required Vercel environment variables
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `DATABASE_URL` | PostgreSQL connection string (Neon/Vercel Postgres) |
+| `AUTH_SECRET` | Random string, **32+ characters** |
+| `NEXT_PUBLIC_SITE_URL` | `https://rajnitikaakhada.in` |
+| `CRON_SECRET` | Random string for `/api/cron/publish` |
+| `STORAGE_PROVIDER` | `cloudinary` or `s3` (local uploads don't work on Vercel) |
+
+Migrations run automatically on every Vercel build when `DATABASE_URL` is set (`vercel.json` → `build:vercel`).
+
+### Manual steps (any host)
 
 1. **PostgreSQL** — Create database (Neon, Supabase, RDS, etc.)
 2. **Set env vars** on host (Vercel/Railway/VPS)
 3. **Run migrations:** `npx prisma migrate deploy`
 4. **Seed (optional):** `npm run db:seed`
 5. **Build:** `npm run build && npm start`
-6. **Cron:** Schedule `/api/cron/publish`
+6. **Cron:** Vercel Cron is configured in `vercel.json` (every 5 min)
 7. **Domain:** Point DNS → set `NEXT_PUBLIC_SITE_URL=https://your-domain.in`
 8. **Storage:** For production, set `STORAGE_PROVIDER=s3` or `cloudinary` with credentials
 
