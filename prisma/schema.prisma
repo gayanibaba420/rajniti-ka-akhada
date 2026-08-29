@@ -170,15 +170,17 @@ model Comment {
 }
 
 model BreakingNews {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
   link      String?
-  articleId String?  @unique
-  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  enabled   Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  articleId String?   @unique
+  article   Article?  @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  enabled   Boolean   @default(true)
+  sortOrder Int       @default(0)
+  startsAt  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([enabled, sortOrder])
 }

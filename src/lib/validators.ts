@@ -34,6 +34,15 @@ export const breakingNewsSchema = z.object({
   articleId: z.string().nullable().optional(),
   enabled: z.boolean(),
   sortOrder: z.number().int(),
+  startsAt: z.string().datetime().nullable().optional(),
+  expiresAt: z.string().datetime().nullable().optional(),
+});
+
+export const categorySchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  slug: z.string().regex(/^[a-z0-9-]+$/).max(80),
+  description: z.string().max(500).optional(),
+  sortOrder: z.number().int().optional(),
 });
 
 export const adSchema = z.object({

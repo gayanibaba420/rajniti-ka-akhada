@@ -5,6 +5,29 @@ import { prisma } from "@/lib/db";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { breakingNewsSchema } from "@/lib/validators";
 
+function parseBreakingDates(input: {
+  startsAt?: string | null;
+  expiresAt?: string | null;
+}) {
+  return {
+    startsAt: input.startsAt ? new Date(input.startsAt) : input.startsAt === null ? null : undefined,
+    expiresAt: input.expiresAt ? new Date(input.expiresAt) : input.expiresAt === null ? null : undefined,
+  };
+}
+
+function breakingData(input: z.infer<typeof breakingNewsSchema>) {
+  const dates = parseBreakingDates(input);
+  return {
+    title: input.title,
+    link: input.link,
+    articleId: input.articleId ?? null,
+    enabled: input.enabled,
+    sortOrder: input.sortOrder,
+    ...(dates.startsAt !== undefined && { startsAt: dates.startsAt }),
+    ...(dates.expiresAt !== undefined && { expiresAt: dates.expiresAt }),
+  };
+}
+
 export async function GET() {
   try {
     const session = await getSession();
@@ -24,7 +47,7 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
     const input = breakingNewsSchema.parse(await request.json());
-    const item = await prisma.breakingNews.create({ data: input });
+    const item = await prisma.breakingNews.create({ data: breakingData(input) });
     return jsonOk({ item }, 201);
   } catch (error) {
     return handleApiError(error);
@@ -42,13 +65,7 @@ export async function PUT(request: NextRequest) {
       items.map((item) =>
         prisma.breakingNews.update({
           where: { id: item.id },
-          data: {
-            title: item.title,
-            link: item.link,
-            articleId: item.articleId ?? null,
-            enabled: item.enabled,
-            sortOrder: item.sortOrder,
-          },
+          data: breakingData(item),
         })
       )
     );

@@ -182,19 +182,53 @@ export async function getArticleIdBySlug(slug: string) {
 }
 
 export async function getBreakingNewsItems() {
-  const items = await prisma.breakingNews.findMany({
-    where: { enabled: true },
-    include: { article: { include: articleInclude } },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-  });
+  const now = new Date();
 
-  return items.map((item) => {
-    if (item.article && item.article.status === "PUBLISHED") {
-      const pub = toPublicArticle(item.article);
-      return { title: item.title || pub.title, slug: pub.slug, link: item.link ?? `/article/${pub.slug}` };
+  const mapItems = (
+    items: Awaited<ReturnType<typeof prisma.breakingNews.findMany<{ include: { article: { include: typeof articleInclude } } }>>>,
+  ) =>
+    items.map((item) => {
+      if (item.article && item.article.status === "PUBLISHED") {
+        const pub = toPublicArticle(item.article);
+        return { title: item.title || pub.title, slug: pub.slug, link: item.link ?? `/article/${pub.slug}` };
+      }
+      return { title: item.title, slug: null as string | null, link: item.link ?? "#" };
+    });
+
+  try {
+    const items = await prisma.breakingNews.findMany({
+      where: {
+        enabled: true,
+        OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      },
+      include: { article: { include: articleInclude } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+
+    const expiredIds = await prisma.breakingNews.findMany({
+      where: { enabled: true, expiresAt: { lte: now } },
+      select: { id: true },
+    });
+    if (expiredIds.length) {
+      await prisma.breakingNews.updateMany({
+        where: { id: { in: expiredIds.map((i) => i.id) } },
+        data: { enabled: false },
+      });
     }
-    return { title: item.title, slug: null as string | null, link: item.link ?? "#" };
-  });
+
+    return mapItems(items);
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code !== "P2022") throw error;
+
+    const items = await prisma.breakingNews.findMany({
+      where: { enabled: true },
+      include: { article: { include: articleInclude } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    });
+    return mapItems(items);
+  }
 }
 
 export async function getActiveAds(position?: string) {
