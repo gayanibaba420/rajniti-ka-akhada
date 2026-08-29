@@ -5,7 +5,7 @@ const ADMIN_PAGE = /^\/admin(\/|$)/;
 const ADMIN_API = /^\/api\/admin(\/|$)/;
 const AUTH_API = /^\/api\/auth\/(login|logout|me)$/;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (AUTH_API.test(pathname)) {
