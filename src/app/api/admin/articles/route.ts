@@ -9,6 +9,7 @@ import {
 } from "@/lib/articles";
 import { computeReadTimeMinutes, slugify } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
@@ -110,6 +111,9 @@ export async function POST(request: NextRequest) {
         update: { title: input.title, enabled: true },
       });
     }
+
+    const category = await prisma.category.findUnique({ where: { id: article.categoryId }, select: { slug: true } });
+    revalidatePublicPages({ slug: article.slug, categorySlug: category?.slug });
 
     return jsonOk({ article }, 201);
   } catch (error) {

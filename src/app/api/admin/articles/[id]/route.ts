@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { parseContentInput, syncArticleTags, upsertTags } from "@/lib/articles";
 import { computeReadTimeMinutes } from "@/lib/types";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
+import { revalidatePublicPages } from "@/lib/revalidate";
 import { articleInputSchema, prepareArticleInput } from "@/lib/validators";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -103,6 +104,15 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
       await prisma.breakingNews.deleteMany({ where: { articleId: article.id } });
     }
 
+    const category = await prisma.category.findUnique({ where: { id: article.categoryId }, select: { slug: true } });
+    revalidatePublicPages({
+      slug: article.slug,
+      categorySlug: category?.slug,
+    });
+    if (input.slug && input.slug !== existing.slug) {
+      revalidatePublicPages({ slug: existing.slug, categorySlug: category?.slug });
+    }
+
     return jsonOk({ article });
   } catch (error) {
     return handleApiError(error);
@@ -115,7 +125,13 @@ export async function DELETE(_request: NextRequest, ctx: Ctx) {
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
     requireRole(session.role, ["SUPER_ADMIN", "EDITOR"]);
     const { id } = await ctx.params;
+    const existing = await prisma.article.findUnique({
+      where: { id },
+      include: { category: { select: { slug: true } } },
+    });
+    if (!existing) return jsonError("लेख नहीं मिला", 404);
     await prisma.article.delete({ where: { id } });
+    revalidatePublicPages({ slug: existing.slug, categorySlug: existing.category.slug });
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);

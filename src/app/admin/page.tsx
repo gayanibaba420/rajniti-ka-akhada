@@ -76,7 +76,7 @@ export default function AdminPage() {
 
   const content = useMemo(() => {
     if (dbError && !meta) return <div className="surface rounded-xl p-8 text-center"><p className="text-red-600">{dbError}</p></div>;
-    if (editing) return <PostEditor meta={meta!} article={editing === "new" ? null : editing} close={() => setEditing(null)} onSaved={() => { setEditing(null); load(); flash("सुरक्षित किया गया"); }} />;
+    if (editing) return <PostEditor meta={meta!} article={editing === "new" ? null : editing} close={() => setEditing(null)} onSaved={(msg) => { setEditing(null); load(); flash(msg ?? "सुरक्षित किया गया"); }} />;
     switch (active) {
       case "posts": return <Posts articles={articles} edit={(a) => setEditing(a)} create={() => setEditing("new")} onRefresh={load} flash={flash} />;
       case "media": return <MediaManager flash={flash} />;
@@ -126,7 +126,14 @@ function Posts({ articles, edit, create, onRefresh, flash }: { articles: Article
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, title: article.title, slug: article.slug, excerpt: article.excerpt, categoryId: article.category.id, authorId: article.author.id, content: article.content }),
     });
-    if (res.ok) { flash("स्थिति अपडेट"); onRefresh(); } else flash("त्रुटि");
+    if (res.ok) {
+      const label = STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status;
+      flash(status === "PUBLISHED" ? "प्रकाशित — साइट पर दिखेगा" : `स्थिति: ${label}`);
+      onRefresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      flash(data.error ?? "त्रुटि");
+    }
   }
   return <div><div className="flex flex-wrap justify-between gap-3"><div><h1 className="text-2xl font-black">सभी पोस्ट</h1></div><button onClick={create} className="btn btn-primary"><Plus size={18} /> नई पोस्ट</button></div><div className="surface mt-6 overflow-x-auto rounded-xl"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-black/5 dark:bg-white/5"><tr>{["शीर्षक", "श्रेणी", "लेखक", "स्थिति", "व्यू", "कार्रवाई"].map((h) => <th className="p-4" key={h}>{h}</th>)}</tr></thead><tbody>{articles.map((a) => <tr className="border-t" style={{ borderColor: "var(--line)" }} key={a.id}><td className="max-w-sm p-4 font-bold">{a.title}</td><td className="p-4">{a.category.name}</td><td className="p-4">{a.author.name}</td><td className="p-4"><select value={a.status} onChange={(e) => updateStatus(a, e.target.value)} className="input !w-auto !py-1">{Object.keys(STATUS_LABELS).map((s) => <option key={s} value={s}>{STATUS_LABELS[s as keyof typeof STATUS_LABELS]}</option>)}</select></td><td className="p-4">{a.viewCount}</td><td className="p-4"><button onClick={() => edit(a)} className="brand font-bold">संपादित</button></td></tr>)}</tbody></table></div></div>;
 }
@@ -202,7 +209,7 @@ function MediaPickerModal({ open, onClose, onSelect }: { open: boolean; onClose:
   );
 }
 
-function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: ArticleRow | null; close: () => void; onSaved: () => void }) {
+function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: ArticleRow | null; close: () => void; onSaved: (message?: string) => void }) {
   const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [title, setTitle] = useState(article?.title ?? "");
@@ -316,41 +323,62 @@ function PostEditor({ meta, article, close, onSaved }: { meta: Meta; article: Ar
     insertImageMarkdown(url.trim(), alt);
   }
 
-  async function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent, publish = false) {
     e.preventDefault();
+    const nextStatus = publish ? "PUBLISHED" : status;
     if (title.trim().length < 10) { setError("शीर्षक कम से कम 10 अक्षर"); return; }
     if (!categoryId) { setError("श्रेणी चुनें"); return; }
     if (!authorId) { setError("लेखक चुनें"); return; }
-    if (status !== "DRAFT") {
+    if (nextStatus !== "DRAFT") {
       if (excerpt.trim().length < 20) { setError("प्रकाशन के लिए सारांश कम से कम 20 अक्षर"); return; }
       if (!body.trim()) { setError("प्रकाशन के लिए मुख्य सामग्री आवश्यक है"); return; }
     }
     setSaving(true);
     const payload = {
-      title, slug: slug || slugify(title), excerpt, content, highlight, location, status,
+      title, slug: slug || slugify(title), excerpt, content, highlight, location, status: nextStatus,
       categoryId, authorId, tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       featured, breaking, trending, seoTitle, seoDescription,
       featuredImageId,
-      scheduledAt: status === "SCHEDULED" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+      scheduledAt: nextStatus === "SCHEDULED" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
     };
     const res = await fetch(article ? `/api/admin/articles/${article.id}` : "/api/admin/articles", {
       method: article ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     setSaving(false);
-    if (res.ok) onSaved(); else { const d = await res.json(); setError(d.error ?? "सुरक्षित नहीं हो सका"); }
+    if (res.ok) {
+      const label = STATUS_LABELS[nextStatus as keyof typeof STATUS_LABELS] ?? nextStatus;
+      onSaved(nextStatus === "PUBLISHED" ? "प्रकाशित — होमपेज पर दिखेगा" : `ड्राफ्ट सुरक्षित (${label})`);
+    } else {
+      const d = await res.json();
+      setError(d.error ?? "सुरक्षित नहीं हो सका");
+    }
   }
 
+  const statusBadgeClass =
+    status === "PUBLISHED" ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200"
+      : status === "DRAFT" ? "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+        : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
+
   return (
-    <form onSubmit={save}>
+    <form onSubmit={(e) => save(e, false)}>
       <MediaPickerModal open={mediaPickerOpen} onClose={() => setMediaPickerOpen(false)} onSelect={handleMediaSelect} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <button type="button" onClick={close} className="muted text-sm">← पोस्ट पर लौटें</button>
-          <h1 className="text-2xl font-black">{article ? "पोस्ट संपादित करें" : "नई पोस्ट"}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-black">{article ? "पोस्ट संपादित करें" : "नई पोस्ट"}</h1>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass}`}>
+              {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}
+            </span>
+          </div>
+          {status === "DRAFT" && (
+            <p className="muted mt-1 text-sm">ड्राफ्ट साइट पर नहीं दिखता — प्रकाशित करने के लिए नीचे &quot;प्रकाशित करें&quot; दबाएं।</p>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={close} className="btn btn-ghost">रद्द</button>
-          <button disabled={saving} className="btn btn-primary">{saving ? "सुरक्षित..." : "सुरक्षित करें"}</button>
+          <button type="submit" disabled={saving} className="btn btn-ghost">{saving ? "सुरक्षित..." : "ड्राफ्ट सहेजें"}</button>
+          <button type="button" disabled={saving} onClick={(e) => save(e, true)} className="btn btn-primary">{saving ? "प्रकाशित..." : "प्रकाशित करें"}</button>
         </div>
       </div>
       {error && <p className="mt-3 text-red-600">{error}</p>}
