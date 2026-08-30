@@ -93,11 +93,19 @@ export async function findOrCreateAuthorByName(name: string, userId?: string | n
     suffix++;
   }
 
+  // Only link userId when unassigned — avoids unique constraint when creating
+  // a named author (e.g. "AI News Desk") while logged in as a user who already has an Author.
+  let linkUserId: string | undefined;
+  if (userId) {
+    const authorForUser = await prisma.author.findUnique({ where: { userId } });
+    if (!authorForUser) linkUserId = userId;
+  }
+
   return prisma.author.create({
     data: {
       name: trimmed,
       slug,
-      ...(userId ? { userId } : {}),
+      ...(linkUserId ? { userId: linkUserId } : {}),
     },
   });
 }
