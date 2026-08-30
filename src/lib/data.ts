@@ -3,10 +3,35 @@ export type { PublicArticle as Article, PublicCategory as Category } from "./typ
 const PRODUCTION_SITE_URL = "https://www.rajnitikaakhada.com";
 const LOCAL_SITE_URL = "http://localhost:43127";
 
+function isVercelDeploymentHost(hostname: string): boolean {
+  return hostname.endsWith(".vercel.app");
+}
+
+/** Prefer canonical production domain over Vercel preview URLs in SEO/canonical output. */
 export function getSiteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (configured) return configured.replace(/\/+$/, "");
+  if (configured) {
+    const normalized = configured.replace(/\/+$/, "");
+    if (process.env.NODE_ENV === "production") {
+      try {
+        if (isVercelDeploymentHost(new URL(normalized).hostname)) {
+          return PRODUCTION_SITE_URL;
+        }
+      } catch {
+        return PRODUCTION_SITE_URL;
+      }
+    }
+    return normalized;
+  }
   return process.env.NODE_ENV === "production" ? PRODUCTION_SITE_URL : LOCAL_SITE_URL;
+}
+
+export function normalizeExternalUrl(url: string | undefined | null): string {
+  const trimmed = url?.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  return `https://${trimmed}`;
 }
 
 /** Bundled brand assets — always used; not overridden by admin settings. */
@@ -72,9 +97,9 @@ export function buildSiteConfig(settings: Record<string, string> = {}): SiteConf
     headerNotice: settings.header_notice?.trim() || SITE_DEFAULTS.headerNotice,
     seoKeywords: settings.seo_keywords?.trim() || SITE_DEFAULTS.seoKeywords,
     gscVerification: settings.gsc_verification?.trim() || SITE_DEFAULTS.gscVerification,
-    socialFacebook: settings.social_facebook?.trim() || SITE_DEFAULTS.socialFacebook,
-    socialInstagram: settings.social_instagram?.trim() || SITE_DEFAULTS.socialInstagram,
-    socialYoutube: settings.social_youtube?.trim() || SITE_DEFAULTS.socialYoutube,
+    socialFacebook: normalizeExternalUrl(settings.social_facebook) || SITE_DEFAULTS.socialFacebook,
+    socialInstagram: normalizeExternalUrl(settings.social_instagram) || SITE_DEFAULTS.socialInstagram,
+    socialYoutube: normalizeExternalUrl(settings.social_youtube) || SITE_DEFAULTS.socialYoutube,
   };
 }
 

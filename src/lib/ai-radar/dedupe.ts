@@ -35,14 +35,24 @@ export async function filterDuplicates(
   const existingUrls = new Set(
     (await prisma.aiNewsDraft.findMany({ select: { sourceUrl: true } })).map((r) => r.sourceUrl),
   );
-  const existingTitles = (
-    await prisma.aiNewsDraft.findMany({
+  const [draftRows, publishedRows] = await Promise.all([
+    prisma.aiNewsDraft.findMany({
       where: { rawTitle: { not: "" } },
       select: { rawTitle: true, title: true },
       take: 500,
       orderBy: { createdAt: "desc" },
-    })
-  ).flatMap((r) => [r.rawTitle, r.title].filter(Boolean) as string[]);
+    }),
+    prisma.article.findMany({
+      where: { status: "PUBLISHED" },
+      select: { title: true },
+      take: 500,
+      orderBy: { publishedAt: "desc" },
+    }),
+  ]);
+  const existingTitles = [
+    ...draftRows.flatMap((r) => [r.rawTitle, r.title].filter(Boolean) as string[]),
+    ...publishedRows.map((r) => r.title),
+  ];
 
   const unique: FetchedNewsItem[] = [];
   let skipped = 0;

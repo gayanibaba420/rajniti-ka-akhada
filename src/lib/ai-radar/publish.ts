@@ -1,4 +1,5 @@
 import type { SessionUser } from "@/lib/auth";
+import { getSiteUrl } from "@/lib/data";
 import { prisma } from "@/lib/db";
 import {
   parseContentInput,
@@ -68,8 +69,7 @@ export async function publishAiNewsDraft(
   const categoryId = await resolveCategoryId(draft.category);
   const slug = await uniqueArticleSlug(draft.slug ?? draft.title);
   const excerpt = (draft.summary ?? draft.content.slice(0, 280)).slice(0, 280);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.rajnitikaakhada.com";
-  const canonicalUrl = `${siteUrl.replace(/\/$/, "")}/article/${slug}`;
+  const canonicalUrl = `${getSiteUrl()}/article/${slug}`;
 
   const authorId = await resolveArticleAuthorId(
     { authorName: options?.authorName ?? "AI News Desk" },

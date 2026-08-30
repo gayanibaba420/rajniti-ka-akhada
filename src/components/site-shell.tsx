@@ -171,7 +171,7 @@ export function SiteFooter({ site }: { site: SiteConfig }) {
             )}
           </div>
         </div>
-        <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/blog">ब्लॉग</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
+        <div><h3 className="font-bold text-[#e8a526]">उपयोगी लिंक</h3><div className="mt-4 grid gap-2 text-sm text-neutral-300"><Link href="/about">हमारे बारे में</Link><Link href="/blog">ब्लॉग</Link><Link href="/contact">संपर्क</Link><Link href="/privacy">गोपनीयता नीति</Link><Link href="/disclaimer">अस्वीकरण</Link><Link href="/terms">नियम और शर्तें</Link><Link href="/rss.xml">RSS फ़ीड</Link></div></div>
         <NewsletterSignup />
       </div>
       <div className="border-t border-neutral-800 py-5 text-center text-xs text-neutral-500">© {new Date().getFullYear()} {site.name} • सर्वाधिकार सुरक्षित</div>
