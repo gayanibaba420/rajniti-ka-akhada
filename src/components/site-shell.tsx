@@ -129,6 +129,26 @@ export function SiteHeader({
         {menu && <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden"><div className="grid grid-cols-2 gap-2">{categories.map((c) => <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">{c.name}</Link>)}<Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">ब्लॉग</Link><Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link></div></nav>}
       </header>
       <BreakingTickerClient initialItems={breakingItems} />
+      <nav aria-label="श्रेणियां" className="border-b lg:hidden" style={{ borderColor: "var(--line)" }}>
+        <div className="container-main category-chips">
+          <Link href="/" className={`category-chip ${pathname === "/" ? "text-[var(--brand)] border-[var(--brand)]" : ""}`} aria-current={pathname === "/" ? "page" : undefined}>
+            होम
+          </Link>
+          {categories.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/category/${c.slug}`}
+              className={`category-chip ${pathname === `/category/${c.slug}` ? "text-[var(--brand)] border-[var(--brand)]" : ""}`}
+              aria-current={pathname === `/category/${c.slug}` ? "page" : undefined}
+            >
+              {c.name}
+            </Link>
+          ))}
+          <Link href="/blog" className={`category-chip ${pathname.startsWith("/blog") ? "text-[var(--brand)] border-[var(--brand)]" : ""}`} aria-current={pathname.startsWith("/blog") ? "page" : undefined}>
+            ब्लॉग
+          </Link>
+        </div>
+      </nav>
       <SearchOverlay open={search} close={() => setSearch(false)} />
     </>
   );
