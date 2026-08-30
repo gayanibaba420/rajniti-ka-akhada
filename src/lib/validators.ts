@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugify } from "./types";
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -125,8 +126,16 @@ export function prepareBlogInput(raw: unknown): Record<string, unknown> {
   if (isDraft) {
     const title = typeof data.title === "string" ? data.title.trim() : "";
     const excerpt = typeof data.excerpt === "string" ? data.excerpt.trim() : "";
+    const slug = typeof data.slug === "string" ? data.slug.trim() : "";
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+      data.slug = slugify(title || "draft");
+    }
     if (!("excerpt" in data) || excerpt.length < 20) {
-      data.excerpt = (title || excerpt).slice(0, 280) || " ";
+      let fallback = (title || excerpt).slice(0, 280).trim();
+      if (fallback.length < 20) {
+        fallback = "ड्राफ्ट — सारांश बाद में भरें";
+      }
+      data.excerpt = fallback;
     }
     if (!("content" in data) || !Array.isArray(data.content) || data.content.length === 0) {
       data.content = [...EMPTY_CONTENT_BLOCK];

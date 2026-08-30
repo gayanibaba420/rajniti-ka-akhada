@@ -236,7 +236,7 @@ export function BlogEditor({
       : "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300";
 
   return (
-    <form onSubmit={(e) => save(e, false)}>
+    <form noValidate onSubmit={(e) => save(e, false)}>
       <MediaPickerModal open={mediaPickerOpen} onClose={() => setMediaPickerOpen(false)} onSelect={handleMediaSelect} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
