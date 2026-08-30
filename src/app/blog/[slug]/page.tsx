@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, Eye } from "lucide-react";
 import { notFound } from "next/navigation";
-import { CategoryBadge } from "@/components/category-badge";
 import { AuthorLink } from "@/components/article-badges";
 import { BlogCard } from "@/components/blog-card";
 import { renderContentBlock } from "@/components/content-blocks";
@@ -107,7 +106,7 @@ export default async function BlogPostPage({ params }: Props) {
       </nav>
       <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_330px]">
         <article>
-          <CategoryBadge label="ब्लॉग" slug="blog" className="mt-4 !px-3 !py-1.5 !text-sm" />
+          <span className="mt-4 inline-block rounded-md bg-[#a71d2a] px-3 py-1.5 text-sm font-black text-white">ब्लॉग</span>
           <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">{blog.title}</h1>
           <p className="muted mt-4 border-l-4 border-[var(--accent)] pl-4 text-lg leading-8">{blog.excerpt}</p>
           <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm" style={{ borderColor: "var(--line)" }}>

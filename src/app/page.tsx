@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Play, Radio } from "lucide-react";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { EditorsPickBadge } from "@/components/article-badges";
-import { CategoryBadge } from "@/components/category-badge";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import {
   getArticleBySlug,
@@ -84,10 +83,10 @@ export default async function Home() {
                 sizes="(max-width: 1024px) 100vw, 70vw"
               />
             )}
-            <div className={`absolute inset-0 ${lead.image ? "bg-gradient-to-t from-black via-black/35 to-transparent" : "bg-gradient-to-br from-[#171717] to-[var(--brand)]/40"}`} />
+            <div className={`absolute inset-0 ${lead.image ? "bg-gradient-to-t from-black via-black/35 to-transparent" : "bg-gradient-to-br from-[#171717] to-[#a71d2a]/40"}`} />
             <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-9">
               <div className="mb-3 flex flex-wrap gap-2">
-                <span className="rounded bg-[var(--brand)] px-3 py-1 text-sm font-black">बड़ी खबर</span>
+                <span className="rounded bg-[#a71d2a] px-3 py-1 text-sm font-black">बड़ी खबर</span>
                 {lead.featured && <EditorsPickBadge className="!px-3 !py-1 !text-sm" />}
                 {lead.location && (
                   <span className="flex items-center gap-1 rounded bg-white/15 px-3 py-1 text-sm backdrop-blur">
@@ -98,7 +97,7 @@ export default async function Home() {
               <h1 className="max-w-4xl text-2xl font-black leading-tight sm:text-4xl lg:text-5xl">
                 <Link href={`/article/${lead.slug}`}>{lead.title}</Link>
               </h1>
-              <p className="mt-3 line-clamp-2 max-w-3xl text-base leading-7 text-neutral-200 sm:line-clamp-none sm:text-lg sm:leading-8">{lead.excerpt}</p>
+              <p className="mt-3 hidden max-w-3xl text-lg leading-8 text-neutral-200 sm:block">{lead.excerpt}</p>
             </div>
           </article>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -116,7 +115,7 @@ export default async function Home() {
               <h2 className="flex items-center gap-2 text-xl font-black">
                 <Radio className="text-[#ef4050]" /> लाइव अपडेट
               </h2>
-              <span className="live-badge rounded-full bg-red-600 px-3 py-1 text-xs font-bold">LIVE</span>
+              <span className="animate-pulse rounded-full bg-red-600 px-3 py-1 text-xs font-bold">LIVE</span>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {secondaryArticles.slice(0, 3).map((a, i) => (
@@ -242,13 +241,13 @@ export default async function Home() {
 
       {isHomepageSectionEnabled(homepage, "homepage_show_video") && (
         <section className="container-main pb-5">
-          <div className="overflow-hidden rounded-2xl bg-[var(--brand)] p-7 text-white sm:flex sm:items-center sm:justify-between">
+          <div className="overflow-hidden rounded-2xl bg-[#a71d2a] p-7 text-white sm:flex sm:items-center sm:justify-between">
             <div>
-              <span className="text-sm font-bold text-[var(--accent)]">वीडियो न्यूज़</span>
+              <span className="text-sm font-bold text-[#ffd274]">वीडियो न्यूज़</span>
               <h2 className="mt-2 text-2xl font-black">हरियाणा की बड़ी खबरें, 5 मिनट में</h2>
               <p className="mt-2 text-white/80">हर शाम 7 बजे हमारा विशेष बुलेटिन देखें।</p>
             </div>
-            <button type="button" className="btn touch-target mt-5 bg-white text-[var(--brand)] sm:mt-0">
+            <button type="button" className="btn mt-5 bg-white text-[#a71d2a] sm:mt-0">
               <Play fill="currentColor" /> अभी देखें
             </button>
           </div>

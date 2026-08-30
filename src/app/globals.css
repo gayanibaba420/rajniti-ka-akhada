@@ -8,15 +8,7 @@
   --line: #ded8cf;
   --brand: #a71d2a;
   --brand-dark: #73101a;
-  --brand-light: #fdf2f3;
   --accent: #e8a526;
-  --cat-politics: #a71d2a;
-  --cat-haryana: #1e3a5f;
-  --cat-sports: #1b6b3a;
-  --cat-entertainment: #6b21a8;
-  --cat-india: #475569;
-  --cat-tech: #0f766e;
-  --cat-education: #92400e;
 }
 
 .dark {
@@ -39,9 +31,6 @@ body {
   font-family: var(--font-noto), system-ui, sans-serif;
   overflow-x: hidden;
 }
-h1, h2, h3, h4, h5, h6, .section-title, .font-heading {
-  font-family: var(--font-mukta), var(--font-noto), system-ui, sans-serif;
-}
 a { color: inherit; text-decoration: none; }
 button, input, textarea, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -60,72 +49,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .eyebrow { color: var(--brand); font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .story-image { transition: transform .45s ease; }
 .story-link:hover .story-image { transform: scale(1.035); }
-.story-card {
-  border-radius: .75rem;
-  transition: box-shadow .25s ease;
-}
-.story-link:hover .story-card,
-.story-link.group:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
-}
-.live-badge {
-  animation: live-pulse 1.5s ease-in-out infinite;
-}
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgb(239 68 68 / .6); }
-  50% { opacity: .85; box-shadow: 0 0 0 6px rgb(239 68 68 / 0); }
-}
-.share-toast {
-  position: fixed;
-  bottom: 5rem;
-  left: 50%;
-  z-index: 200;
-  translate: -50% 0;
-  border-radius: .75rem;
-  background: var(--foreground);
-  color: var(--surface);
-  padding: .65rem 1.25rem;
-  font-size: .875rem;
-  font-weight: 700;
-  box-shadow: 0 10px 25px rgb(0 0 0 / .15);
-  animation: toast-in .25s ease;
-}
-@keyframes toast-in {
-  from { opacity: 0; translate: -50% 1rem; }
-  to { opacity: 1; translate: -50% 0; }
-}
-.category-chips {
-  display: flex;
-  gap: .5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: .65rem 0;
-}
-.category-chips::-webkit-scrollbar { display: none; }
-.category-chip {
-  flex-shrink: 0;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  padding: .5rem 1rem;
-  font-size: .8125rem;
-  font-weight: 800;
-  white-space: nowrap;
-  transition: border-color .2s, color .2s;
-}
-.category-chip:hover,
-.category-chip[aria-current="page"] {
-  border-color: var(--brand);
-  color: var(--brand);
-}
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
-}
 .ticker-track { display: flex; width: max-content; animation: ticker 40s linear infinite; }
 .ticker:hover .ticker-track { animation-play-state: paused; }
 @keyframes ticker { to { transform: translateX(-50%); } }

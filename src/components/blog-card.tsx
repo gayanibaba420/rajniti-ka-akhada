@@ -2,13 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PublicBlogPost } from "@/lib/types";
 import { formatHindiDate } from "@/lib/types";
-import { CategoryBadge } from "./category-badge";
 
 export function BlogCard({ blog, priority = false }: { blog: PublicBlogPost; priority?: boolean }) {
   return (
-    <article className="story-link story-card group">
+    <article className="story-link group">
       {blog.image ? (
-        <Link href={`/blog/${blog.slug}`} className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-200 transition-shadow hover:shadow-md">
+        <Link href={`/blog/${blog.slug}`} className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-200">
           <Image
             className="story-image object-cover"
             fill
@@ -18,12 +17,12 @@ export function BlogCard({ blog, priority = false }: { blog: PublicBlogPost; pri
             priority={priority}
           />
           <div className="absolute left-3 top-3">
-            <CategoryBadge label="ब्लॉग" slug="blog" className="!px-2 !py-1" />
+            <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">ब्लॉग</span>
           </div>
         </Link>
       ) : (
-        <Link href={`/blog/${blog.slug}`} className="relative block overflow-hidden rounded-xl border bg-[var(--surface)] p-4 transition-shadow hover:shadow-md" style={{ borderColor: "var(--line)" }}>
-          <CategoryBadge label="ब्लॉग" slug="blog" className="!px-2 !py-1" />
+        <Link href={`/blog/${blog.slug}`} className="relative block overflow-hidden rounded-xl border bg-[var(--surface)] p-4" style={{ borderColor: "var(--line)" }}>
+          <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">ब्लॉग</span>
         </Link>
       )}
       <div className="pt-3">
