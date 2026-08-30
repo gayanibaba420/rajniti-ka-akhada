@@ -72,6 +72,29 @@ Set `NEXT_PUBLIC_API_URL=http://localhost:4000` in frontend `.env`.
 | `NEXT_PUBLIC_SITE_URL` | `https://www.rajnitikaakhada.com` |
 | `NEXT_PUBLIC_API_URL` | `https://api.rajnitikaakhada.com` |
 
+## Google Analytics 4 (GA4)
+
+Traffic is tracked with GA4 when `NEXT_PUBLIC_GA_ID` is set. The measurement ID is **not** stored in admin site settings — use the Vercel environment variable only.
+
+### 1. Create a GA4 property (Google Analytics)
+
+1. Open [Google Analytics](https://analytics.google.com/) → **Admin** (gear icon).
+2. **Create property** (or use an existing one) for `rajnitikaakhada.com`.
+3. Under **Data streams** → **Web**, add stream URL `https://www.rajnitikaakhada.com`.
+4. Copy the **Measurement ID** (format `G-XXXXXXXXXX`).
+
+### 2. Set env var in Vercel
+
+1. Vercel project → **Settings** → **Environment Variables**.
+2. Add `NEXT_PUBLIC_GA_ID` = your `G-XXXXXXXXXX` ID for **Production** (and Preview if desired).
+3. **Redeploy** the frontend so the build picks up the variable.
+
+### 3. Cookie consent
+
+A Hindi cookie banner appears until the visitor clicks **स्वीकार करें**. GA4 scripts load only after consent (stored in `localStorage`). If `NEXT_PUBLIC_GA_ID` is unset, the banner and analytics are skipped entirely.
+
+Admin **Google Search Console** verification (`gsc_verification` in site settings) is separate from GA4 and unchanged.
+
 ## Backend — EC2 manual setup
 
 See `backend/.env.example` for all variables. Summary:

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Mukta, Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { BackToTopButton } from "@/components/back-to-top";
+import { CookieConsentBanner } from "@/components/cookie-consent";
+import { GoogleAnalyticsProvider } from "@/components/google-analytics";
 import { PwaInstallBanner } from "@/components/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa-register";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
@@ -86,6 +88,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <BackToTopButton />
         <PwaRegister />
         <PwaInstallBanner />
+        <CookieConsentBanner />
+        <GoogleAnalyticsProvider />
       </body>
     </html>
   );
