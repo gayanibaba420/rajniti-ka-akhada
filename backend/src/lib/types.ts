@@ -15,8 +15,8 @@ export interface PublicArticle {
   category: string;
   categoryName: string;
   location?: string;
-  image: string;
-  imageAlt: string;
+  image?: string | null;
+  imageAlt?: string;
   author: string;
   publishedAt: string;
   readTime: string;

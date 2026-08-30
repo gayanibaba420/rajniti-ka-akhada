@@ -5,9 +5,6 @@ import type { ContentBlock, PublicArticle, PublicCategory } from "./types";
 import { blocksToPlainText, computeReadTimeMinutes, formatReadTime, slugify } from "./types";
 import { tryPublishArticleToFacebook } from "./facebook";
 
-const DEFAULT_IMAGE = "/news-assembly.svg";
-const DEFAULT_IMAGE_ALT = "राजनीति का अखाड़ा";
-
 const articleInclude = {
   category: true,
   author: true,
@@ -27,8 +24,8 @@ export function toPublicArticle(article: ArticleWithRelations): PublicArticle {
     category: article.category.slug,
     categoryName: article.category.name,
     location: article.location ?? undefined,
-    image: article.featuredImage?.url ?? DEFAULT_IMAGE,
-    imageAlt: article.featuredImage?.alt ?? article.title,
+    image: article.featuredImage?.url ?? null,
+    imageAlt: article.featuredImage?.alt ?? undefined,
     author: article.author.name,
     authorSlug: article.author.slug,
     publishedAt: (article.publishedAt ?? article.createdAt).toISOString(),

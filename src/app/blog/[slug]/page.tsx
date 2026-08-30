@@ -9,6 +9,7 @@ import { renderContentBlock } from "@/components/content-blocks";
 import { ShareActions } from "@/components/article-actions";
 import { getBlogPostBySlug, getPublishedBlogPosts, getRelatedBlogPosts } from "@/lib/blogs";
 import { getSiteConfig } from "@/lib/articles";
+import { resolveOgImageUrl } from "@/lib/data";
 import { checkDbConnection } from "@/lib/db";
 import { getPublicSiteConfig } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
@@ -23,6 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const config = await getPublicSiteConfig();
   const blog = await getBlogPostBySlug(slug);
   if (!blog) return {};
+  const ogImage = resolveOgImageUrl(blog.image, config.url);
   return {
     title: blog.seoTitle ?? blog.title,
     description: blog.seoDescription ?? blog.excerpt,
@@ -34,15 +36,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: blog.publishedAt,
       authors: [blog.author],
       images: [{
-        url: blog.image.startsWith("http") ? blog.image : `${config.url}${blog.image}`,
-        alt: blog.imageAlt,
+        url: ogImage,
+        alt: blog.imageAlt ?? blog.title,
       }],
     },
     twitter: {
       card: "summary_large_image",
       title: blog.title,
       description: blog.excerpt,
-      images: [blog.image.startsWith("http") ? blog.image : `${config.url}${blog.image}`],
+      images: [ogImage],
     },
   };
 }
@@ -73,7 +75,7 @@ export default async function BlogPostPage({ params }: Props) {
     "@type": "BlogPosting",
     headline: blog.title,
     description: blog.excerpt,
-    image: [`${config.url}${blog.image.startsWith("http") ? blog.image : blog.image}`],
+    image: [resolveOgImageUrl(blog.image, config.url)],
     datePublished: blog.publishedAt,
     dateModified: blog.updatedAt ?? blog.publishedAt,
     author: { "@type": "Person", name: blog.author },
@@ -125,12 +127,14 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="no-print">
             <ShareActions title={blog.title} />
           </div>
-          <figure className="mt-6">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
-              <Image src={blog.image} alt={blog.imageAlt} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
-            </div>
-            <figcaption className="muted mt-2 text-xs">{blog.imageAlt}</figcaption>
-          </figure>
+          {blog.image ? (
+            <figure className="mt-6">
+              <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+                <Image src={blog.image} alt={blog.imageAlt ?? blog.title} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
+              </div>
+              {blog.imageAlt && <figcaption className="muted mt-2 text-xs">{blog.imageAlt}</figcaption>}
+            </figure>
+          ) : null}
           <div className="prose-news">
             {(blocks.length ? blocks : blog.content.map((text) => ({ type: "paragraph" as const, text }))).map((block, index) =>
               renderContentBlock(block as ContentBlock, index),

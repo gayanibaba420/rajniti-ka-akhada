@@ -72,16 +72,18 @@ export default async function Home() {
 
       {isHomepageSectionEnabled(homepage, "homepage_show_lead") && (
         <section className="container-main grid gap-5 pb-10 lg:grid-cols-[1.65fr_.85fr]">
-          <article className="story-link surface relative min-h-[420px] overflow-hidden rounded-2xl sm:min-h-[540px]">
-            <Image
-              className="story-image object-cover"
-              fill
-              src={lead.image}
-              alt={lead.imageAlt}
-              priority
-              sizes="(max-width: 1024px) 100vw, 70vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+          <article className={`story-link surface relative min-h-[420px] overflow-hidden rounded-2xl sm:min-h-[540px] ${lead.image ? "" : "bg-[#171717]"}`}>
+            {lead.image && (
+              <Image
+                className="story-image object-cover"
+                fill
+                src={lead.image}
+                alt={lead.imageAlt ?? lead.title}
+                priority
+                sizes="(max-width: 1024px) 100vw, 70vw"
+              />
+            )}
+            <div className={`absolute inset-0 ${lead.image ? "bg-gradient-to-t from-black via-black/35 to-transparent" : "bg-gradient-to-br from-[#171717] to-[#a71d2a]/40"}`} />
             <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-9">
               <div className="mb-3 flex flex-wrap gap-2">
                 <span className="rounded bg-[#a71d2a] px-3 py-1 text-sm font-black">बड़ी खबर</span>

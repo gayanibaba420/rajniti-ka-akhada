@@ -9,6 +9,7 @@ import { DbAdSlot } from "@/components/db-ad-slot";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
 import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig } from "@/lib/articles";
+import { resolveOgImageUrl } from "@/lib/data";
 import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
@@ -24,6 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const config = await getPublicSiteConfig();
   const article = await safeDbQuery(() => getArticleBySlug(slug), null);
   if (!article) return {};
+  const ogImage = resolveOgImageUrl(article.image, config.url);
   return {
     title: article.seoTitle ?? article.title,
     description: article.seoDescription ?? article.excerpt,
@@ -35,15 +37,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: article.publishedAt,
       authors: [article.author],
       images: [{
-        url: article.image.startsWith("http") ? article.image : `${config.url}${article.image}`,
-        alt: article.imageAlt,
+        url: ogImage,
+        alt: article.imageAlt ?? article.title,
       }],
     },
     twitter: {
       card: "summary_large_image",
       title: article.title,
       description: article.excerpt,
-      images: [article.image.startsWith("http") ? article.image : `${config.url}${article.image}`],
+      images: [ogImage],
     },
   };
 }
@@ -84,7 +86,8 @@ export default async function ArticlePage({ params }: Props) {
 
   const url = `${config.url}/article/${article.slug}`;
   const videoEmbed = article.videoUrl ? toVideoEmbedUrl(article.videoUrl) : null;
-  const schema = { "@context": "https://schema.org", "@type": "NewsArticle", headline: article.title, description: article.excerpt, image: [`${config.url}${article.image.startsWith("http") ? article.image : article.image}`], datePublished: article.publishedAt, dateModified: article.publishedAt, author: { "@type": "Person", name: article.author }, publisher: { "@type": "NewsMediaOrganization", name: config.name }, mainEntityOfPage: url };
+  const schemaImage = article.image ? resolveOgImageUrl(article.image, config.url) : resolveOgImageUrl(null, config.url);
+  const schema = { "@context": "https://schema.org", "@type": "NewsArticle", headline: article.title, description: article.excerpt, image: [schemaImage], datePublished: article.publishedAt, dateModified: article.publishedAt, author: { "@type": "Person", name: article.author }, publisher: { "@type": "NewsMediaOrganization", name: config.name }, mainEntityOfPage: url };
   const breadcrumb = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "होम", item: config.url }, { "@type": "ListItem", position: 2, name: article.categoryName, item: `${config.url}/category/${article.category}` }, { "@type": "ListItem", position: 3, name: article.title, item: url }] };
   const blocks = article.contentBlocks ?? [];
   const showUpdated =
@@ -117,7 +120,14 @@ export default async function ArticlePage({ params }: Props) {
             <ShareActions title={article.title} />
             <PrintButton />
           </div>
-          <figure className="mt-6"><div className="relative aspect-[16/9] overflow-hidden rounded-2xl"><Image src={article.image} alt={article.imageAlt} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" /></div><figcaption className="muted mt-2 text-xs">{article.imageAlt}</figcaption></figure>
+          {article.image ? (
+            <figure className="mt-6">
+              <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+                <Image src={article.image} alt={article.imageAlt ?? article.title} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 800px" />
+              </div>
+              {article.imageAlt && <figcaption className="muted mt-2 text-xs">{article.imageAlt}</figcaption>}
+            </figure>
+          ) : null}
           {videoEmbed && (
             <div className="my-7 aspect-video overflow-hidden rounded-2xl">
               <iframe src={videoEmbed} className="h-full w-full" title={`${article.title} वीडियो`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />

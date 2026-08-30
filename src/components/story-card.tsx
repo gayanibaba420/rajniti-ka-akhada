@@ -5,17 +5,29 @@ import { EditorsPickBadge } from "./article-badges";
 
 export function StoryCard({ article, horizontal = false, priority = false, categories }: { article: PublicArticle; horizontal?: boolean; priority?: boolean; categories?: Array<{ slug: string; name: string }> }) {
   const category = categories?.find((item) => item.slug === article.category)?.name ?? article.categoryName;
+  const hasImage = Boolean(article.image);
   return (
-    <article className={`story-link group ${horizontal ? "grid grid-cols-[120px_1fr] gap-3 sm:grid-cols-[180px_1fr]" : ""}`}>
-      <Link href={`/article/${article.slug}`} className={`relative block overflow-hidden rounded-xl bg-neutral-200 ${horizontal ? "min-h-28" : "aspect-[16/10]"}`}>
-        <Image className="story-image object-cover" fill src={article.image} alt={article.imageAlt} sizes={horizontal ? "180px" : "(max-width: 768px) 100vw, 33vw"} priority={priority} />
-        {!horizontal && (
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">{category}</span>
-            {article.featured && <EditorsPickBadge />}
-          </div>
-        )}
-      </Link>
+    <article className={`story-link group ${horizontal && hasImage ? "grid grid-cols-[120px_1fr] gap-3 sm:grid-cols-[180px_1fr]" : ""}`}>
+      {hasImage ? (
+        <Link href={`/article/${article.slug}`} className={`relative block overflow-hidden rounded-xl bg-neutral-200 ${horizontal ? "min-h-28" : "aspect-[16/10]"}`}>
+          <Image className="story-image object-cover" fill src={article.image!} alt={article.imageAlt ?? article.title} sizes={horizontal ? "180px" : "(max-width: 768px) 100vw, 33vw"} priority={priority} />
+          {!horizontal && (
+            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+              <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">{category}</span>
+              {article.featured && <EditorsPickBadge />}
+            </div>
+          )}
+        </Link>
+      ) : (
+        !horizontal && (
+          <Link href={`/article/${article.slug}`} className="relative block overflow-hidden rounded-xl border bg-[var(--surface)] p-4" style={{ borderColor: "var(--line)" }}>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">{category}</span>
+              {article.featured && <EditorsPickBadge />}
+            </div>
+          </Link>
+        )
+      )}
       <div className={horizontal ? "py-1" : "pt-3"}>
         <div className="flex flex-wrap items-center gap-2">
           {horizontal && <span className="eyebrow">{category}</span>}

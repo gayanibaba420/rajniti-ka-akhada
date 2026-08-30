@@ -6,19 +6,25 @@ import { formatHindiDate } from "@/lib/types";
 export function BlogCard({ blog, priority = false }: { blog: PublicBlogPost; priority?: boolean }) {
   return (
     <article className="story-link group">
-      <Link href={`/blog/${blog.slug}`} className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-200">
-        <Image
-          className="story-image object-cover"
-          fill
-          src={blog.image}
-          alt={blog.imageAlt}
-          sizes="(max-width: 768px) 100vw, 33vw"
-          priority={priority}
-        />
-        <div className="absolute left-3 top-3">
+      {blog.image ? (
+        <Link href={`/blog/${blog.slug}`} className="relative block aspect-[16/10] overflow-hidden rounded-xl bg-neutral-200">
+          <Image
+            className="story-image object-cover"
+            fill
+            src={blog.image}
+            alt={blog.imageAlt ?? blog.title}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            priority={priority}
+          />
+          <div className="absolute left-3 top-3">
+            <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">ब्लॉग</span>
+          </div>
+        </Link>
+      ) : (
+        <Link href={`/blog/${blog.slug}`} className="relative block overflow-hidden rounded-xl border bg-[var(--surface)] p-4" style={{ borderColor: "var(--line)" }}>
           <span className="rounded-md bg-[#a71d2a] px-2 py-1 text-xs font-black text-white">ब्लॉग</span>
-        </div>
-      </Link>
+        </Link>
+      )}
       <div className="pt-3">
         <h3 className="text-lg font-black leading-snug group-hover:text-[var(--brand)]">
           <Link href={`/blog/${blog.slug}`}>{blog.title}</Link>

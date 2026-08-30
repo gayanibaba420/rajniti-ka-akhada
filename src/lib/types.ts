@@ -22,8 +22,8 @@ export interface PublicArticle {
   category: string;
   categoryName: string;
   location?: string;
-  image: string;
-  imageAlt: string;
+  image?: string | null;
+  imageAlt?: string;
   author: string;
   authorSlug: string;
   publishedAt: string;
@@ -53,8 +53,8 @@ export interface PublicBlogPost {
   slug: string;
   title: string;
   excerpt: string;
-  image: string;
-  imageAlt: string;
+  image?: string | null;
+  imageAlt?: string;
   author: string;
   authorSlug: string;
   publishedAt: string;

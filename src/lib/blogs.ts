@@ -4,8 +4,6 @@ import { findOrCreateAuthorByName, parseContentInput, resolveArticleAuthorId } f
 import type { ContentBlock, PublicBlogPost } from "./types";
 import { blocksToPlainText, computeReadTimeMinutes, formatReadTime } from "./types";
 
-const DEFAULT_IMAGE = "/news-assembly.svg";
-
 const blogInclude = {
   author: true,
   featuredImage: true,
@@ -20,8 +18,8 @@ export function toPublicBlogPost(blog: BlogWithRelations): PublicBlogPost {
     slug: blog.slug,
     title: blog.title,
     excerpt: blog.excerpt,
-    image: blog.featuredImage?.url ?? DEFAULT_IMAGE,
-    imageAlt: blog.featuredImage?.alt ?? blog.title,
+    image: blog.featuredImage?.url ?? null,
+    imageAlt: blog.featuredImage?.alt ?? undefined,
     author: blog.author.name,
     authorSlug: blog.author.slug,
     publishedAt: (blog.publishedAt ?? blog.createdAt).toISOString(),

@@ -19,6 +19,12 @@ export const BRAND_ASSETS = {
   logoHeight: 683,
 } as const;
 
+/** Absolute URL for Open Graph / schema — uses featured image when set, otherwise site brand logo. */
+export function resolveOgImageUrl(image: string | null | undefined, siteUrl: string): string {
+  if (image) return image.startsWith("http") ? image : `${siteUrl}${image}`;
+  return `${siteUrl.replace(/\/+$/, "")}${BRAND_ASSETS.logo}`;
+}
+
 export type SiteConfig = {
   name: string;
   tagline: string;
