@@ -8,18 +8,38 @@ function readRuntimeEnv(name: string): string | undefined {
   return process.env[name];
 }
 
-export function getGeminiApiKeyFromEnv(): string | null {
-  const key = readRuntimeEnv("GEMINI_API_KEY");
-  return key?.trim() || null;
+function trimNonEmpty(value: string | undefined | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed || null;
 }
 
-export async function getGeminiApiKey(): Promise<string | null> {
+/** Valid Gemini keys are ~39 chars; shorter values are likely truncated/invalid. */
+function isLikelyValidGeminiKey(key: string): boolean {
+  return key.length >= 30;
+}
+
+export function getGeminiApiKeyFromEnv(): string | null {
+  return trimNonEmpty(readRuntimeEnv("GEMINI_API_KEY"));
+}
+
+/** Resolve Gemini key: env (correct name), env typo fallback, then DB. */
+export async function resolveGeminiApiKey(): Promise<string | null> {
   const fromEnv = getGeminiApiKeyFromEnv();
   if (fromEnv) return fromEnv;
 
+  // Common Vercel typo: GEMIMI_API_KEY instead of GEMINI_API_KEY
+  const fromTypoEnv = trimNonEmpty(readRuntimeEnv("GEMIMI_API_KEY"));
+  if (fromTypoEnv) return fromTypoEnv;
+
   const row = await prisma.siteSetting.findUnique({ where: { key: GEMINI_KEY_SETTING } });
-  const fromDb = row?.value?.trim();
-  return fromDb || null;
+  const fromDb = trimNonEmpty(row?.value);
+  if (fromDb && isLikelyValidGeminiKey(fromDb)) return fromDb;
+
+  return null;
+}
+
+export async function getGeminiApiKey(): Promise<string | null> {
+  return resolveGeminiApiKey();
 }
 
 export async function saveGeminiApiKey(key: string): Promise<void> {
@@ -39,8 +59,9 @@ export function getGnewsApiKey(): string | null {
 }
 
 export async function getApiKeyStatus() {
+  const geminiKey = await resolveGeminiApiKey();
   return {
-    geminiConfigured: Boolean(await getGeminiApiKey()),
+    geminiConfigured: Boolean(geminiKey),
     gnewsConfigured: Boolean(getGnewsApiKey()),
   };
 }
