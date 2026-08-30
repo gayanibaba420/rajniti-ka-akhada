@@ -7,13 +7,14 @@ import { AuthorLink } from "@/components/article-badges";
 import { BlogCard } from "@/components/blog-card";
 import { renderContentBlock } from "@/components/content-blocks";
 import { ShareActions } from "@/components/article-actions";
+import { RelativeTime } from "@/components/relative-time";
 import { getBlogPostBySlug, getPublishedBlogPosts, getRelatedBlogPosts } from "@/lib/blogs";
 import { getSiteConfig } from "@/lib/articles";
 import { resolveOgImageUrl } from "@/lib/data";
 import { checkDbConnection } from "@/lib/db";
 import { getPublicSiteConfig } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
-import { formatHindiDate, formatHindiDateTime } from "@/lib/types";
+import { formatHindiDate } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -113,7 +114,7 @@ export default async function BlogPostPage({ params }: Props) {
             <AuthorLink name={blog.author} slug={blog.authorSlug} />
             <span className="flex items-center gap-1">
               <Clock size={15} />
-              {formatHindiDateTime(blog.publishedAt)}
+              <RelativeTime iso={blog.publishedAt} />
             </span>
             <span>{blog.readTime}</span>
             {showUpdated && blog.updatedAt && (

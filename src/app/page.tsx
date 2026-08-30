@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Play, Radio } from "lucide-react";
 import { DbAdSlot } from "@/components/db-ad-slot";
 import { EditorsPickBadge } from "@/components/article-badges";
+import { HomepageLiveRefresh } from "@/components/homepage-live-refresh";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import {
   getArticleBySlug,
@@ -15,6 +16,7 @@ import { checkDbConnection } from "@/lib/db";
 import { isHomepageSectionEnabled, parseHomepageSettings } from "@/lib/homepage-settings";
 import { safeDbQuery } from "@/lib/public-data";
 import type { PublicArticle } from "@/lib/types";
+import { formatHindiTime } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +68,10 @@ export default async function Home() {
 
   return (
     <>
+      <HomepageLiveRefresh
+        latestSlug={lead.slug}
+        latestPublishedAt={lead.publishedAt}
+      />
       <section className="container-main py-5">
         <DbAdSlot position="HEADER" />
       </section>
@@ -118,11 +124,10 @@ export default async function Home() {
               <span className="animate-pulse rounded-full bg-red-600 px-3 py-1 text-xs font-bold">LIVE</span>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              {secondaryArticles.slice(0, 3).map((a, i) => (
+              {secondaryArticles.slice(0, 3).map((a) => (
                 <Link href={`/article/${a.slug}`} key={a.slug} className="flex gap-3 border-l border-neutral-700 pl-4">
-                  <span className="text-sm font-bold text-[#e8a526]">
-                    {12 - i}:{2}
-                    {i}
+                  <span className="shrink-0 text-sm font-bold text-[#e8a526]">
+                    {formatHindiTime(a.publishedAt)}
                   </span>
                   <span className="text-sm font-bold leading-6">{a.title}</span>
                 </Link>

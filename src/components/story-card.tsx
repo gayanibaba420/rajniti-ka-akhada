@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { PublicArticle } from "@/lib/types";
 import { EditorsPickBadge } from "./article-badges";
+import { RelativeTime } from "./relative-time";
 
 export function StoryCard({ article, horizontal = false, priority = false, categories }: { article: PublicArticle; horizontal?: boolean; priority?: boolean; categories?: Array<{ slug: string; name: string }> }) {
   const category = categories?.find((item) => item.slug === article.category)?.name ?? article.categoryName;
@@ -35,7 +36,11 @@ export function StoryCard({ article, horizontal = false, priority = false, categ
         </div>
         <h3 className={`${horizontal ? "text-base sm:text-lg" : "text-lg"} mt-1 font-black leading-snug group-hover:text-[var(--brand)]`}><Link href={`/article/${article.slug}`}>{article.title}</Link></h3>
         {!horizontal && <p className="muted mt-2 line-clamp-2 text-sm leading-6">{article.excerpt}</p>}
-        <div className="muted mt-2 flex flex-wrap items-center gap-3 text-xs">{article.location && <span>{article.location}</span>}<span>{article.readTime}</span></div>
+        <div className="muted mt-2 flex flex-wrap items-center gap-3 text-xs">
+          <RelativeTime iso={article.publishedAt} />
+          {article.location && <span>{article.location}</span>}
+          <span>{article.readTime}</span>
+        </div>
       </div>
     </article>
   );
@@ -55,7 +60,9 @@ export function SidebarList({ title = "सबसे ज्यादा पढ़
             <div>
               <span className="eyebrow">{article.categoryName}</span>
               <h3 className="mt-1 text-sm font-bold leading-6 group-hover:text-[var(--brand)]">{article.title}</h3>
-              {variant === "trending" && <span className="muted mt-1 block text-xs">{article.readTime}</span>}
+              {variant === "trending" && (
+                <RelativeTime iso={article.publishedAt} className="muted mt-1 block text-xs" />
+              )}
             </div>
           </Link>
         ))}

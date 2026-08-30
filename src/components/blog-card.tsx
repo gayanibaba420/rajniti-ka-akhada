@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { PublicBlogPost } from "@/lib/types";
-import { formatHindiDate } from "@/lib/types";
+import { RelativeTime } from "./relative-time";
 
 export function BlogCard({ blog, priority = false }: { blog: PublicBlogPost; priority?: boolean }) {
   return (
@@ -32,7 +32,7 @@ export function BlogCard({ blog, priority = false }: { blog: PublicBlogPost; pri
         <p className="muted mt-2 line-clamp-2 text-sm leading-6">{blog.excerpt}</p>
         <div className="muted mt-2 flex flex-wrap items-center gap-3 text-xs">
           <span>{blog.author}</span>
-          <span>{formatHindiDate(blog.publishedAt)}</span>
+          <RelativeTime iso={blog.publishedAt} />
           <span>{blog.readTime}</span>
         </div>
       </div>

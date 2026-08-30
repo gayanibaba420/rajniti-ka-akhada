@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+const POLL_INTERVAL_MS = 30_000;
+
 interface BreakingItem {
   title: string;
   slug: string | null;
@@ -13,12 +15,18 @@ export function BreakingTickerClient({ initialItems }: { initialItems: BreakingI
   const [items, setItems] = useState(initialItems);
 
   useEffect(() => {
-    fetch("/api/public/breaking")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.items?.length) setItems(data.items);
-      })
-      .catch(() => undefined);
+    const refresh = () => {
+      fetch("/api/public/breaking", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.items?.length) setItems(data.items);
+        })
+        .catch(() => undefined);
+    };
+
+    refresh();
+    const id = setInterval(refresh, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
   }, []);
 
   if (!items.length) return null;

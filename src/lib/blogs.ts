@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "./db";
 import { findOrCreateAuthorByName, parseContentInput, resolveArticleAuthorId } from "./articles";
 import type { ContentBlock, PublicBlogPost } from "./types";
@@ -43,6 +44,7 @@ export async function getPublishedBlogPosts(options?: {
   limit?: number;
   skip?: number;
 }) {
+  noStore();
   const rows = await prisma.blogPost.findMany({
     where: publishedWhere,
     include: blogInclude,

@@ -3,6 +3,12 @@ import { getSession, requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { breakingNewsSchema } from "@/lib/validators";
+import { revalidatePath } from "next/cache";
+
+function revalidateBreakingPages() {
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+}
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -32,6 +38,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
         ...(dates.expiresAt !== undefined && { expiresAt: dates.expiresAt }),
       },
     });
+    revalidateBreakingPages();
     return jsonOk({ item });
   } catch (error) {
     return handleApiError(error);
@@ -45,6 +52,7 @@ export async function DELETE(_request: NextRequest, ctx: Ctx) {
     requireRole(session.role, ["SUPER_ADMIN", "EDITOR"]);
     const { id } = await ctx.params;
     await prisma.breakingNews.delete({ where: { id } });
+    revalidateBreakingPages();
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);

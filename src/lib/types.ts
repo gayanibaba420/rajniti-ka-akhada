@@ -186,6 +186,31 @@ export function formatHindiDateTime(iso: string): string {
   return new Intl.DateTimeFormat("hi-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
+/** Hindi relative time, e.g. "अभी", "3 मिनट पहले". Falls back to date for older posts. */
+export function formatRelativeTimeHindi(iso: string, nowMs = Date.now()): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return formatHindiDateTime(iso);
+
+  const diffSec = Math.max(0, Math.floor((nowMs - then) / 1000));
+  if (diffSec < 45) return "अभी";
+  if (diffSec < 90) return "1 मिनट पहले";
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} मिनट पहले`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} घंटे पहले`;
+
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay} दिन पहले`;
+
+  return formatHindiDate(iso);
+}
+
+export function formatHindiTime(iso: string): string {
+  return new Intl.DateTimeFormat("hi-IN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
+}
+
 export function slugify(value: string): string {
   return value
     .toLowerCase()

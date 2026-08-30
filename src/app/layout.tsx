@@ -7,6 +7,8 @@ import { BRAND_ASSETS, getSiteUrl, type SiteConfig } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 const noto = Noto_Sans_Devanagari({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-noto", weight: ["400", "500", "600", "700", "800", "900"] });
 
 function absoluteAssetUrl(baseUrl: string, path: string): string {

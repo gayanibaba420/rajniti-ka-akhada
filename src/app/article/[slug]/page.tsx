@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Comments, PrintButton, ShareActions } from "@/components/article-actions";
 import { AuthorLink } from "@/components/article-badges";
 import { DbAdSlot } from "@/components/db-ad-slot";
+import { RelativeTime } from "@/components/relative-time";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
 import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig } from "@/lib/articles";
@@ -13,7 +14,7 @@ import { resolveOgImageUrl } from "@/lib/data";
 import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
 import type { ContentBlock } from "@/lib/types";
-import { formatHindiDate, formatHindiDateTime } from "@/lib/types";
+import { formatHindiDate } from "@/lib/types";
 import { toVideoEmbedUrl } from "@/lib/video-url";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -108,7 +109,7 @@ export default async function ArticlePage({ params }: Props) {
           <p className="muted mt-4 border-l-4 border-[var(--accent)] pl-4 text-lg leading-8">{article.excerpt}</p>
           <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm no-print" style={{ borderColor: "var(--line)" }}>
             <AuthorLink name={article.author} slug={article.authorSlug} />
-            <span className="flex items-center gap-1"><Clock size={15} />{formatHindiDateTime(article.publishedAt)}</span>
+            <span className="flex items-center gap-1"><Clock size={15} /><RelativeTime iso={article.publishedAt} /></span>
             <span>{article.readTime}</span>
             {showUpdated && article.updatedAt && (
               <span>अपडेट: {formatHindiDate(article.updatedAt)}</span>

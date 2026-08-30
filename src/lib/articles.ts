@@ -1,4 +1,5 @@
 import type { Prisma, Article as DbArticle, ArticleStatus } from "@prisma/client";
+import { unstable_noStore as noStore } from "next/cache";
 import { buildSiteConfig } from "./data";
 import { prisma } from "./db";
 import type { ContentBlock, PublicArticle, PublicCategory } from "./types";
@@ -150,6 +151,7 @@ export async function getPublishedArticles(options?: {
   skip?: number;
   orderBy?: Prisma.ArticleOrderByWithRelationInput[];
 }) {
+  noStore();
   const where: Prisma.ArticleWhereInput = { ...publishedWhere };
   if (options?.categorySlug) where.category = { slug: options.categorySlug };
   if (options?.featured) where.featured = true;
@@ -264,6 +266,7 @@ export async function getArticleIdBySlug(slug: string) {
 }
 
 export async function getBreakingNewsItems() {
+  noStore();
   const now = new Date();
 
   const mapItems = (

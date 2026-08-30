@@ -1,9 +1,15 @@
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { breakingNewsSchema } from "@/lib/validators";
+
+function revalidateBreakingPages() {
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+}
 
 function parseBreakingDates(input: {
   startsAt?: string | null;
@@ -48,6 +54,7 @@ export async function POST(request: NextRequest) {
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
     const input = breakingNewsSchema.parse(await request.json());
     const item = await prisma.breakingNews.create({ data: breakingData(input) });
+    revalidateBreakingPages();
     return jsonOk({ item }, 201);
   } catch (error) {
     return handleApiError(error);
@@ -69,6 +76,7 @@ export async function PUT(request: NextRequest) {
         })
       )
     );
+    revalidateBreakingPages();
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);
