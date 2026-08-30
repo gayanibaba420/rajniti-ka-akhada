@@ -33,8 +33,8 @@ export function BreakingTickerClient({ initialItems }: { initialItems: BreakingI
   const loop = [...items, ...items];
 
   return (
-    <div className="ticker flex overflow-hidden bg-[#a71d2a] text-white">
-      <div className="z-10 shrink-0 bg-[#74111b] px-4 py-2.5 text-sm font-black">ब्रेकिंग</div>
+    <div className="ticker flex overflow-hidden bg-[var(--brand)] text-white">
+      <div className="z-10 shrink-0 bg-[var(--brand-dark)] px-4 py-2.5 text-sm font-black">ब्रेकिंग</div>
       <div className="overflow-hidden">
         <div className="ticker-track">
           {loop.map((item, index) => (

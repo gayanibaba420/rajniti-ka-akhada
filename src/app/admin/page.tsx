@@ -252,7 +252,7 @@ export default function AdminPage() {
                 setMobileMenu(false);
               }}
               key={id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !isEditing ? (id === "ai-radar" ? "bg-indigo-700" : "bg-[#a71d2a]") : "hover:bg-white/10"}`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !isEditing ? (id === "ai-radar" ? "bg-indigo-700" : "bg-[var(--brand)]") : "hover:bg-white/10"}`}
             >
               <Icon size={18} />
               {label}
