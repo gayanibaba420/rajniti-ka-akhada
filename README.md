@@ -111,7 +111,11 @@ Set these in Vercel project settings or `.env` — **never** in `NEXT_PUBLIC_*` 
 
 ### Cron schedule
 
-Vercel cron runs `/api/cron/ai-radar` every 45 minutes (configurable interval in admin settings). Requires `CRON_SECRET` header:
+On **Vercel Hobby**, cron jobs are limited to once per day. `vercel.json` runs `/api/cron/ai-radar` daily at 01:30 UTC (`30 1 * * *`; publish cron is midnight UTC). On Pro/Enterprise you can use a tighter schedule (e.g. every 45 minutes).
+
+Admins can trigger a fetch anytime from **AI News Radar** → **खबरें लाएं** (Fetch News Now); the cron is only for unattended runs.
+
+Manual/cron trigger requires `CRON_SECRET` header:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" https://www.rajnitikaakhada.com/api/cron/ai-radar

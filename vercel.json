@@ -8,7 +8,7 @@
     },
     {
       "path": "/api/cron/ai-radar",
-      "schedule": "*/45 * * * *"
+      "schedule": "30 1 * * *"
     }
   ]
 }
