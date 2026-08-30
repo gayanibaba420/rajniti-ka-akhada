@@ -6,8 +6,11 @@ import {
   getAiRadarSettings,
   getApiKeyStatus,
   saveAiRadarSettings,
+  saveGeminiApiKey,
 } from "@/lib/ai-radar/settings";
 import { aiRadarSettingsSchema } from "@/lib/ai-radar/validators";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -15,7 +18,7 @@ export async function GET() {
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
 
     await ensureDefaultCategories();
-    const [settings, apiKeys] = await Promise.all([getAiRadarSettings(), Promise.resolve(getApiKeyStatus())]);
+    const [settings, apiKeys] = await Promise.all([getAiRadarSettings(), getApiKeyStatus()]);
 
     return jsonOk({ settings, apiKeys });
   } catch (error) {
@@ -29,10 +32,17 @@ export async function PUT(request: NextRequest) {
     if (!session) return jsonError("लॉगिन आवश्यक", 401);
     requireRole(session.role, ["SUPER_ADMIN", "EDITOR"]);
 
-    const settings = aiRadarSettingsSchema.parse(await request.json());
+    const body = (await request.json()) as Record<string, unknown>;
+    const { geminiApiKey, ...settingsBody } = body;
+    const settings = aiRadarSettingsSchema.parse(settingsBody);
     await saveAiRadarSettings(settings);
 
-    return jsonOk({ ok: true, settings });
+    if (typeof geminiApiKey === "string" && geminiApiKey.trim()) {
+      await saveGeminiApiKey(geminiApiKey);
+    }
+
+    const apiKeys = await getApiKeyStatus();
+    return jsonOk({ ok: true, settings, apiKeys });
   } catch (error) {
     return handleApiError(error);
   }

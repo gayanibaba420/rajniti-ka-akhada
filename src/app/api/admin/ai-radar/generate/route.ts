@@ -4,6 +4,8 @@ import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { generateDraftForRecord, generateDraftsForFetched } from "@/lib/ai-radar/pipeline";
 import { rateLimitAiEndpoint } from "@/lib/ai-radar/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();

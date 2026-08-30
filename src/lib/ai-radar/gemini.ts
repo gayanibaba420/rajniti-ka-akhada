@@ -47,7 +47,7 @@ export async function generateHindiDraft(
   item: FetchedNewsItem,
   categories: string[],
 ): Promise<GeminiDraftResult & { _durationMs?: number; _tokensUsed?: number }> {
-  const apiKey = getGeminiApiKey();
+  const apiKey = await getGeminiApiKey();
   if (!apiKey) throw new Error("Gemini API key not configured (set GEMINI_API_KEY)");
 
   const start = Date.now();

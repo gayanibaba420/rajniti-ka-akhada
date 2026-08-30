@@ -3,6 +3,8 @@ import { handleApiError, jsonOk } from "@/lib/api-utils";
 import { runAiNewsPipeline } from "@/lib/ai-radar/pipeline";
 import { getAiRadarSettings } from "@/lib/ai-radar/settings";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     requireCronAuth(request);

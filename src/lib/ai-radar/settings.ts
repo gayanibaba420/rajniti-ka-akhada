@@ -2,18 +2,45 @@ import { prisma } from "@/lib/db";
 import { DEFAULT_AI_RADAR_SETTINGS, type AiRadarSettings } from "./types";
 
 const SETTINGS_KEY = "ai_radar_config";
+const GEMINI_KEY_SETTING = "gemini_api_key";
 
-export function getGeminiApiKey(): string | null {
-  return process.env.GEMINI_API_KEY?.trim() || null;
+function readRuntimeEnv(name: string): string | undefined {
+  return process.env[name];
+}
+
+export function getGeminiApiKeyFromEnv(): string | null {
+  const key = readRuntimeEnv("GEMINI_API_KEY");
+  return key?.trim() || null;
+}
+
+export async function getGeminiApiKey(): Promise<string | null> {
+  const fromEnv = getGeminiApiKeyFromEnv();
+  if (fromEnv) return fromEnv;
+
+  const row = await prisma.siteSetting.findUnique({ where: { key: GEMINI_KEY_SETTING } });
+  const fromDb = row?.value?.trim();
+  return fromDb || null;
+}
+
+export async function saveGeminiApiKey(key: string): Promise<void> {
+  const trimmed = key.trim();
+  if (!trimmed) return;
+
+  await prisma.siteSetting.upsert({
+    where: { key: GEMINI_KEY_SETTING },
+    create: { key: GEMINI_KEY_SETTING, value: trimmed },
+    update: { value: trimmed },
+  });
 }
 
 export function getGnewsApiKey(): string | null {
-  return process.env.GNEWS_API_KEY?.trim() || null;
+  const key = readRuntimeEnv("GNEWS_API_KEY");
+  return key?.trim() || null;
 }
 
-export function getApiKeyStatus() {
+export async function getApiKeyStatus() {
   return {
-    geminiConfigured: Boolean(getGeminiApiKey()),
+    geminiConfigured: Boolean(await getGeminiApiKey()),
     gnewsConfigured: Boolean(getGnewsApiKey()),
   };
 }

@@ -5,6 +5,8 @@ import { handleApiError, jsonError, jsonOk } from "@/lib/api-utils";
 import { getAiRadarStats, getRecentLogs } from "@/lib/ai-radar/logging";
 import { getApiKeyStatus, getAiRadarSettings } from "@/lib/ai-radar/settings";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
       getAiRadarStats(),
       getAiRadarSettings(),
       getRecentLogs(15),
-      Promise.resolve(getApiKeyStatus()),
+      getApiKeyStatus(),
     ]);
 
     return jsonOk({ drafts, stats, settings, logs, apiKeys });

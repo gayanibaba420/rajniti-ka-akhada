@@ -92,6 +92,7 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
   const [logs, setLogs] = useState<AiLog[]>([]);
   const [settings, setSettings] = useState<AiRadarSettings | null>(null);
   const [apiKeys, setApiKeys] = useState<{ geminiConfigured: boolean; gnewsConfigured: boolean } | null>(null);
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -233,14 +234,23 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
   async function saveSettings() {
     if (!settings) return;
     setBusy("settings");
+    const payload: Record<string, unknown> = { ...settings };
+    if (geminiApiKeyInput.trim()) payload.geminiApiKey = geminiApiKeyInput.trim();
+
     const res = await fetch("/api/admin/ai-radar/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     setBusy("");
-    flash(res.ok ? "सेटिंग्स सुरक्षित" : (data.error ?? "त्रुटि"));
+    if (res.ok) {
+      setGeminiApiKeyInput("");
+      if (data.apiKeys) setApiKeys(data.apiKeys);
+      flash("सेटिंग्स सुरक्षित");
+    } else {
+      flash(data.error ?? "त्रुटि");
+    }
   }
 
   function toggleSelect(id: string) {
@@ -297,7 +307,7 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
           <p className="mt-1">
             {!apiKeys.geminiConfigured && "GEMINI_API_KEY "}
             {!apiKeys.gnewsConfigured && "GNEWS_API_KEY "}
-            — सर्वर env vars में सेट करें (कभी भी frontend में नहीं)।
+            — Vercel env vars में सेट करें, या नीचे सेटिंग्स में Gemini कुंजी दर्ज करें (server-side only)।
           </p>
         </div>
       )}
@@ -323,6 +333,20 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
             <label className="grid gap-1 text-sm">
               <span className="font-bold">AI Provider</span>
               <input className="input" value="Gemini (server-side)" disabled />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="font-bold">Gemini API Key</span>
+              <input
+                type="password"
+                className="input"
+                autoComplete="off"
+                value={geminiApiKeyInput}
+                placeholder={apiKeys?.geminiConfigured ? "•••••••• (configured — enter to replace)" : "Vercel GEMINI_API_KEY or paste here"}
+                onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+              />
+              <span className="text-xs text-neutral-500">
+                Vercel env `GEMINI_API_KEY` preferred; saved here only if env is unset.
+              </span>
             </label>
             <label className="grid gap-1 text-sm">
               <span className="font-bold">समाचार स्रोत</span>
