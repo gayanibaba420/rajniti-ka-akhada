@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Devanagari } from "next/font/google";
+import { Mukta, Noto_Sans_Devanagari } from "next/font/google";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { BackToTopButton } from "@/components/back-to-top";
+import { PwaInstallBanner } from "@/components/pwa-install-banner";
+import { PwaRegister } from "@/components/pwa-register";
 import { getBreakingNewsItems, getCategories } from "@/lib/articles";
 import { BRAND_ASSETS, getSiteUrl, type SiteConfig } from "@/lib/data";
 import { getPublicSiteConfig, safeDbQuery } from "@/lib/public-data";
@@ -10,6 +12,7 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 const noto = Noto_Sans_Devanagari({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-noto", weight: ["400", "500", "600", "700", "800", "900"] });
+const mukta = Mukta({ subsets: ["devanagari", "latin"], display: "swap", variable: "--font-mukta", weight: ["700", "800"] });
 
 function absoluteAssetUrl(baseUrl: string, path: string): string {
   if (!path) return `${baseUrl}${BRAND_ASSETS.logo}`;
@@ -42,6 +45,13 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [ogImage],
     },
     robots: { index: true, follow: true },
+    manifest: "/manifest.json",
+    themeColor: "#A71D2A",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "राजनीति अखाड़ा",
+    },
     icons: {
       icon: [{ url: BRAND_ASSETS.favicon }, { url: BRAND_ASSETS.logo, type: "image/jpeg", sizes: "1024x683" }],
       apple: BRAND_ASSETS.appleTouchIcon,
@@ -67,13 +77,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="hi" suppressHydrationWarning>
-      <body className={noto.variable}>
+      <body className={`${noto.variable} ${mukta.variable}`}>
         <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}` }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, "\\u003c") }} />
         <SiteHeader site={site} categories={categories} breakingItems={breaking} />
         <main id="main-content">{children}</main>
         <SiteFooter site={site} />
         <BackToTopButton />
+        <PwaRegister />
+        <PwaInstallBanner />
       </body>
     </html>
   );
