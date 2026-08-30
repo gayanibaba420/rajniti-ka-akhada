@@ -84,3 +84,42 @@ See `backend/.env.example` for all variables. Summary:
 6. Cron: `curl -H "Authorization: Bearer $CRON_SECRET" https://api.rajnitikaakhada.com/api/cron/publish`
 
 Health: `GET /health`
+
+## AI News Radar
+
+Safe AI-assisted Hindi news drafting with **manual approval required by default**. AI never auto-publishes.
+
+### Environment variables (server-side only)
+
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API key for Hindi draft generation |
+| `GNEWS_API_KEY` | GNews.io API key for news fetching (optional if using RSS) |
+| `CRON_SECRET` | Bearer token for scheduled fetch (`/api/cron/ai-radar`) |
+
+Set these in Vercel project settings or `.env` — **never** in `NEXT_PUBLIC_*` vars.
+
+### Admin usage
+
+1. Log in to `/admin` → sidebar **AI News Radar**
+2. Configure settings (categories, fetch interval, min confidence, manual approval)
+3. Click **खबरें लाएं** to fetch news from GNews/RSS
+4. Click **AI ड्राफ्ट बनाएं** to generate Hindi drafts via Gemini
+5. Review drafts — verify facts, edit if needed, select featured image from Media library
+6. Click **प्रकाशित** only after confirming: *"AI generated content — Please verify facts before publishing."*
+7. Approved content publishes as a regular `Article` with full SEO metadata
+
+### Cron schedule
+
+Vercel cron runs `/api/cron/ai-radar` every 45 minutes (configurable interval in admin settings). Requires `CRON_SECRET` header:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://www.rajnitikaakhada.com/api/cron/ai-radar
+```
+
+### Limitations
+
+- No auto-download of copyrighted source images (stores `imagePrompt` only)
+- Gemini/GNews free-tier rate limits apply — errors shown in admin activity log
+- Duplicate detection by URL and title similarity; not 100% foolproof
+- RSS sources can be added via database `AiNewsSource` records (type `RSS`)

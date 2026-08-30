@@ -128,6 +128,7 @@ model Article {
   views            ArticleView[]
   breakingNews     BreakingNews?
   scheduledPost    ScheduledPost?
+  aiNewsPublished  AiNewsDraft?   @relation("AiNewsPublishedArticle")
 
   @@index([slug])
   @@index([categoryId])
@@ -160,8 +161,9 @@ model Media {
   storageKey String?
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  articles   Article[]  @relation("FeaturedImage")
-  blogPosts  BlogPost[] @relation("BlogFeaturedImage")
+  articles   Article[]     @relation("FeaturedImage")
+  blogPosts  BlogPost[]    @relation("BlogFeaturedImage")
+  aiNewsDrafts AiNewsDraft[] @relation("AiNewsFeaturedImage")
 }
 
 model BlogPost {
@@ -267,4 +269,110 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+enum AiNewsDraftStatus {
+  FETCHED
+  DRAFT
+  NEEDS_VERIFICATION
+  APPROVED
+  PUBLISHED
+  REJECTED
+}
+
+enum AiNewsVerificationStatus {
+  VERIFIED
+  NEEDS_VERIFICATION
+  UNCERTAIN
+}
+
+enum AiNewsSourceType {
+  GNEWS
+  RSS
+}
+
+enum AiGenerationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model AiNewsSource {
+  id        String           @id @default(cuid())
+  name      String
+  type      AiNewsSourceType
+  url       String?
+  category  String?
+  query     String?
+  enabled   Boolean          @default(true)
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+model AiNewsCategory {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+model AiNewsDraft {
+  id                 String                   @id @default(cuid())
+  title              String?
+  slug               String?
+  content            String?                  @db.Text
+  summary            String?                  @db.Text
+  metaTitle          String?
+  metaDescription    String?                  @db.Text
+  category           String?
+  tags               String[]                 @default([])
+  imagePrompt        String?                  @db.Text
+  sourceName         String
+  sourceUrl          String                   @unique
+  sourcePublishedAt  DateTime?
+  rawTitle           String
+  rawContent         String?                  @db.Text
+  rawDescription     String?                  @db.Text
+  aiConfidence       Float?
+  verificationStatus AiNewsVerificationStatus @default(NEEDS_VERIFICATION)
+  status             AiNewsDraftStatus        @default(FETCHED)
+  featuredImageId    String?
+  featuredImage      Media?                   @relation("AiNewsFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  publishedArticleId String?                  @unique
+  publishedArticle   Article?                 @relation("AiNewsPublishedArticle", fields: [publishedArticleId], references: [id], onDelete: SetNull)
+  errorMessage       String?                  @db.Text
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  generationLogs     AiGenerationLog[]
+
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@index([aiConfidence])
+}
+
+model AiGenerationLog {
+  id         String             @id @default(cuid())
+  draftId    String?
+  draft      AiNewsDraft?       @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  action     String
+  status     AiGenerationStatus
+  message    String?            @db.Text
+  provider   String?
+  tokensUsed Int?
+  durationMs Int?
+  createdAt  DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([draftId])
 }

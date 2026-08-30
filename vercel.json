@@ -5,6 +5,10 @@
     {
       "path": "/api/cron/publish",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/ai-radar",
+      "schedule": "*/45 * * * *"
     }
   ]
 }

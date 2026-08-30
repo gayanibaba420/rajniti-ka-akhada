@@ -69,4 +69,5 @@ export type AdminSection =
   | "breaking"
   | "comments"
   | "ads"
+  | "ai-radar"
   | "settings";

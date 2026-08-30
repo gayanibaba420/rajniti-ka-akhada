@@ -14,10 +14,12 @@ import {
   Menu,
   MessageSquare,
   Megaphone,
+  Radar,
   Settings,
   ShieldCheck,
   X,
 } from "lucide-react";
+import { AiRadarPanel } from "@/components/admin/ai-radar-panel";
 import { BlogEditor } from "@/components/admin/blog-editor";
 import { PostEditor } from "@/components/admin/post-editor";
 import {
@@ -43,6 +45,7 @@ const sections = [
   ["breaking", "ब्रेकिंग", BellRing],
   ["comments", "टिप्पणियाँ", MessageSquare],
   ["ads", "विज्ञापन", Megaphone],
+  ["ai-radar", "AI News Radar", Radar],
   ["settings", "सेटिंग्स", Settings],
 ] as const;
 
@@ -190,6 +193,8 @@ export default function AdminPage() {
         return <CommentsPanel flash={flash} />;
       case "ads":
         return <AdsPanel flash={flash} />;
+      case "ai-radar":
+        return <AiRadarPanel flash={flash} />;
       case "settings":
         return <SettingsPanelUnified flash={flash} />;
       default:
@@ -247,7 +252,7 @@ export default function AdminPage() {
                 setMobileMenu(false);
               }}
               key={id}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !isEditing ? "bg-[#a71d2a]" : "hover:bg-white/10"}`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold ${active === id && !isEditing ? (id === "ai-radar" ? "bg-indigo-700" : "bg-[#a71d2a]") : "hover:bg-white/10"}`}
             >
               <Icon size={18} />
               {label}
