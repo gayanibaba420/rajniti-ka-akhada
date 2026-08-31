@@ -18,18 +18,24 @@ const CITIES: WeatherCity[] = [
   { name: "गुरुग्राम", temp: 34, condition: "आंशिक बादल", icon: "⛅" },
 ];
 
+interface MarketRate {
+  label: string;
+  val: string;
+  change: string;
+  up: boolean;
+}
+
 export function TopInfoBar() {
   const [mounted, setMounted] = useState(false);
   const [cityIndex, setCityIndex] = useState(0);
   const [marketIndex, setMarketIndex] = useState(0);
-
   const [dateStr, setDateStr] = useState("सोमवार, 31 अगस्त 2026");
 
-  const marketPulse = [
-    { label: "सोना (24K)", val: "₹72,450/10g", change: "+₹210", up: true },
-    { label: "चांदी", val: "₹85,200/kg", change: "+₹450", up: true },
+  const [marketPulse, setMarketPulse] = useState<MarketRate[]>([
+    { label: "सोना (24K)", val: "₹86,450/10g", change: "+₹220", up: true },
+    { label: "चांदी", val: "₹96,200/kg", change: "+₹450", up: true },
     { label: "सेंसेक्स", val: "81,780", change: "+240", up: true },
-  ];
+  ]);
 
   useEffect(() => {
     setMounted(true);
@@ -46,6 +52,16 @@ export function TopInfoBar() {
       // fallback
     }
 
+    // Fetch Live Real Gold, Silver & Market Rates
+    fetch("/api/public/market-rates")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.rates) && data.rates.length > 0) {
+          setMarketPulse(data.rates);
+        }
+      })
+      .catch(() => undefined);
+
     const timer = setInterval(() => {
       setCityIndex((prev) => (prev + 1) % CITIES.length);
       setMarketIndex((prev) => (prev + 1) % marketPulse.length);
@@ -54,7 +70,7 @@ export function TopInfoBar() {
   }, [marketPulse.length]);
 
   const currentCity = CITIES[cityIndex];
-  const currentMarket = marketPulse[marketIndex];
+  const currentMarket = marketPulse[marketIndex] || marketPulse[0];
 
   return (
     <div className="bg-[#111] text-neutral-300 text-[11px] font-bold py-1.5 border-b border-neutral-800 select-none">
