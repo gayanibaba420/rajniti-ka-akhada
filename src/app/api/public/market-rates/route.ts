@@ -19,14 +19,14 @@ export async function GET() {
 
     const rates = [];
 
-    // 1. Live 24K Gold Rate in India (per 10g from NSE Gold ETF: 1 unit ~ ₹132 -> ~650x to 10g standard = ~₹86,045)
+    // 1. Live 24K Gold Rate in India (per 10g from NSE Gold ETF: 1 unit ~ 0.015g)
     if (goldRes.status === "fulfilled" && goldRes.value?.chart?.result?.[0]?.meta) {
       const meta = goldRes.value.chart.result[0].meta;
-      const current = meta.regularMarketPrice || 132.37;
+      const current = meta.regularMarketPrice || 127.32;
       const prev = meta.chartPreviousClose || current;
       
-      const gold10g = Math.round(current * 650);
-      const prev10g = Math.round(prev * 650);
+      const gold10g = Math.round(current / 0.015);
+      const prev10g = Math.round(prev / 0.015);
       const diff = gold10g - prev10g;
 
       rates.push({
@@ -36,17 +36,17 @@ export async function GET() {
         up: diff >= 0,
       });
     } else {
-      rates.push({ label: "सोना (24K)", val: "₹86,450/10g", change: "+₹220", up: true });
+      rates.push({ label: "सोना (24K)", val: "₹84,880/10g", change: "-₹235", up: false });
     }
 
-    // 2. Live Silver Rate in India (per 1kg from NSE Silver ETF: 1 unit ~ ₹97.7 -> 1000x to 1kg standard = ~₹97,770)
+    // 2. Live Silver Rate in India (per 1kg from NSE Silver ETF: 1 unit ~ 2.5g)
     if (silverRes.status === "fulfilled" && silverRes.value?.chart?.result?.[0]?.meta) {
       const meta = silverRes.value.chart.result[0].meta;
-      const current = meta.regularMarketPrice || 97.77;
+      const current = meta.regularMarketPrice || 223.21;
       const prev = meta.chartPreviousClose || current;
 
-      const silverKg = Math.round(current * 1000);
-      const prevKg = Math.round(prev * 1000);
+      const silverKg = Math.round(current / 0.0025);
+      const prevKg = Math.round(prev / 0.0025);
       const diff = silverKg - prevKg;
 
       rates.push({
@@ -56,13 +56,13 @@ export async function GET() {
         up: diff >= 0,
       });
     } else {
-      rates.push({ label: "चांदी", val: "₹97,770/kg", change: "+₹450", up: true });
+      rates.push({ label: "चांदी", val: "₹89,284/kg", change: "-₹288", up: false });
     }
 
     // 3. Live BSE Sensex
     if (sensexRes.status === "fulfilled" && sensexRes.value?.chart?.result?.[0]?.meta) {
       const meta = sensexRes.value.chart.result[0].meta;
-      const current = Math.round(meta.regularMarketPrice || 81500);
+      const current = Math.round(meta.regularMarketPrice || 76957);
       const prev = Math.round(meta.chartPreviousClose || current);
       const diff = current - prev;
 
@@ -104,8 +104,8 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       rates: [
-        { label: "सोना (24K)", val: "₹86,045/10g", change: "+₹220", up: true },
-        { label: "चांदी", val: "₹97,770/kg", change: "+₹767", up: true },
+        { label: "सोना (24K)", val: "₹84,880/10g", change: "-₹235", up: false },
+        { label: "चांदी", val: "₹89,284/kg", change: "-₹288", up: false },
         { label: "सेंसेक्स", val: "76,957", change: "-308", up: false },
       ],
     });
