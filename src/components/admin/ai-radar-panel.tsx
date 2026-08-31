@@ -175,20 +175,36 @@ export function AiRadarPanel({
     return found ? found.id : meta.categories[0].id;
   }
 
+  function generateValidSlug(title: string, category: string): string {
+    const english = title
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const cat = (category || "news").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "news";
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).slice(2, 6);
+    if (english && english.length >= 3) {
+      return `${cat}-${english.slice(0, 80)}-${timestamp}`.replace(/--+/g, "-");
+    }
+    return `${cat}-${timestamp}-${random}`;
+  }
+
   // 1-Click Publish to Main Website
   async function handleOneClickPublish(item: ViralNewsItem) {
     try {
       setPublishingId(item.id);
       const targetCategoryId = matchCategory(item.category || item.categoryHindi);
       
+      const safeTitle = item.title.trim().slice(0, 160);
+      const finalTitle = safeTitle.length < 10 ? safeTitle + " - राजनीति का अखाड़ा" : safeTitle;
+      const safeExcerpt = (item.title.trim() + " | राजनीति का अखाड़ा पर ताज़ा समाचार व ब्रेकिंग अपडेट।").slice(0, 280);
+      const validSlug = generateValidSlug(item.title, item.category || "news");
+
       const payload = {
-        title: item.title,
-        slug: item.title
-          .toLowerCase()
-          .replace(/[^\w\u0900-\u097F]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 100) || "news-" + Date.now(),
-        excerpt: item.title,
+        title: finalTitle,
+        slug: validSlug,
+        excerpt: safeExcerpt,
         content: [
           {
             type: "paragraph",
@@ -240,9 +256,12 @@ export function AiRadarPanel({
     if (!onOpenEditor) return;
     const targetCategoryId = matchCategory(item.category || item.categoryHindi);
     const initialContent = "## " + item.title + "\n\n" + item.title + "\n\n📍 श्रेणी: " + (item.categoryHindi || item.category) + "\n📰 स्रोत: " + item.source + "\n🔗 मूल लिंक: " + item.link;
+    const validSlug = generateValidSlug(item.title, item.category || "news");
+    const safeExcerpt = (item.title.trim() + " | राजनीति का अखाड़ा पर ताज़ा समाचार।").slice(0, 280);
     onOpenEditor({
       title: item.title,
-      excerpt: item.title,
+      slug: validSlug,
+      excerpt: safeExcerpt,
       content: initialContent,
       categoryId: targetCategoryId,
       location: item.category === "hisar" ? "हिसार" : "हरियाणा",

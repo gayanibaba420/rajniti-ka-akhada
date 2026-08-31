@@ -159,6 +159,15 @@ export function prepareArticleInput(
     typeof data.status === "string" ? data.status : options?.existingStatus ?? "DRAFT";
   const isDraft = status === "DRAFT";
 
+  if (typeof data.slug === "string") {
+    const s = data.slug.trim();
+    if (!s || !/^[a-z0-9-]+$/.test(s)) {
+      data.slug = slugify(s || (typeof data.title === "string" ? data.title : "post"));
+    }
+  } else if (typeof data.title === "string") {
+    data.slug = slugify(data.title);
+  }
+
   if (isDraft) {
     const title = typeof data.title === "string" ? data.title.trim() : "";
     const excerpt = typeof data.excerpt === "string" ? data.excerpt.trim() : "";
