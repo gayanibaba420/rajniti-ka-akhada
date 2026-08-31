@@ -5,6 +5,7 @@ import { DbAdSlot } from "@/components/db-ad-slot";
 import { EditorsPickBadge } from "@/components/article-badges";
 import { HomepageLiveRefresh } from "@/components/homepage-live-refresh";
 import { SidebarList, StoryCard } from "@/components/story-card";
+import { LiveViralRadarWidget } from "@/components/live-viral-radar";
 import {
   getArticleBySlug,
   getCategories,
@@ -205,15 +206,14 @@ export default async function Home() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className="flex flex-col gap-6">
+              <LiveViralRadarWidget limit={5} />
               <DbAdSlot position="SIDEBAR" />
-              <div className="mt-6">
-                <SidebarList
-                  title="सबसे ज्यादा पढ़ी गई"
-                  variant="trending"
-                  items={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views).slice(0, 5)}
-                />
-              </div>
+              <SidebarList
+                title="सबसे ज्यादा पढ़ी गई"
+                variant="trending"
+                items={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views).slice(0, 5)}
+              />
             </div>
           </div>
         </section>
