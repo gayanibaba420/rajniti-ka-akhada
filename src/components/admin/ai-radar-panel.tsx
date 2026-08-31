@@ -175,6 +175,53 @@ export function AiRadarPanel({
     return found ? found.id : meta.categories[0].id;
   }
 
+  function cleanNewsHeadline(rawTitle: string): string {
+    return rawTitle
+      .replace(/\s*\.\.\.\s*$/, "")
+      .replace(/\s*-\s*[A-Za-z\u0900-\u097F\s]+$/, "")
+      .trim();
+  }
+
+  function buildJournalisticArticle(item: ViralNewsItem) {
+    const headline = cleanNewsHeadline(item.title);
+    const catLower = (item.category || "").toLowerCase();
+    const location = catLower === "hisar" ? "हिसार" : catLower === "haryana" ? "हरियाणा/चंडीगढ़" : catLower === "politics" ? "राजनीतिक डेस्क" : "देश/नई दिल्ली";
+    const dateStr = new Intl.DateTimeFormat("hi-IN", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
+
+    const p1 = `${location} | ${dateStr} (राजनीति का अखाड़ा ब्यूरो): ${headline}। इस ताज़ा घटनाक्रम को लेकर क्षेत्र और संबंधित हलकों में व्यापक चर्चा का माहौल बना हुआ है तथा प्रशासनिक स्तर पर भी हलचल तेज़ हो गई है।`;
+    const p2 = `प्राप्त विवरण के अनुसार, पूरे मामले को लेकर संबंधित विभागों और अधिकारियों द्वारा स्थिति की लगातार निगरानी की जा रही है। घटना से जुड़े मुख्य बिंदुओं पर नज़र डालें तो इस विषय पर विभिन्न पक्षों द्वारा अपनी-अपनी प्रतिक्रियाएं सामने आई हैं। स्थानीय नागरिकों एवं संबंधित वर्ग की ओर से भी इस पर गंभीरता से ध्यान दिया जा रहा है।`;
+    const p3 = `राजनीतिक और सामाजिक जानकारों का मानना है कि इस घटनाक्रम के आगामी दिनों में कई अहम प्रभाव देखने को मिल सकते हैं। क्षेत्र में व्यवस्था बनाए रखने और जनसरोकार के मुद्दों को प्राथमिकता देने के लिए संबंधित तंत्र भी पूरी तरह सक्रिय है।`;
+    const p4 = `इस पूरे मामले पर आगे की कार्रवाई और हर बड़े अपडेट पर 'राजनीति का अखाड़ा' की टीम लगातार नज़र बनाए हुए है। विश्वसनीय और निष्पक्ष समाचारों के लिए जुड़े रहें।`;
+
+    const blocks = [
+      { type: "paragraph" as const, text: p1 },
+      { type: "paragraph" as const, text: p2 },
+      { type: "paragraph" as const, text: p3 },
+      { type: "paragraph" as const, text: p4 },
+    ];
+
+    const markdown = `## ${headline}
+
+**${location} | ${dateStr} (राजनीति का अखाड़ा ब्यूरो)**
+
+${headline}। इस ताज़ा घटनाक्रम को लेकर क्षेत्र और संबंधित हलकों में व्यापक चर्चा का माहौल बना हुआ है तथा प्रशासनिक स्तर पर भी हलचल तेज़ हो गई है।
+
+### मुख्य घटनाक्रम व विवरण
+
+प्राप्त विवरण के अनुसार, पूरे मामले को लेकर संबंधित विभागों और अधिकारियों द्वारा स्थिति की लगातार निगरानी की जा रही है। घटना से जुड़े मुख्य बिंदुओं पर नज़र डालें तो इस विषय पर विभिन्न पक्षों द्वारा अपनी-अपनी प्रतिक्रियाएं सामने आई हैं। स्थानीय नागरिकों एवं संबंधित वर्ग की ओर से भी इस पर गंभीरता से ध्यान दिया जा रहा है।
+
+### प्रभाव एवं आगामी रणनीति
+
+राजनीतिक और सामाजिक जानकारों का मानना है कि इस घटनाक्रम के आगामी दिनों में कई अहम प्रभाव देखने को मिल सकते हैं। क्षेत्र में व्यवस्था बनाए रखने और जनसरोकार के मुद्दों को प्राथमिकता देने के लिए संबंधित तंत्र भी पूरी तरह सक्रिय है।
+
+---
+*इस पूरे मामले पर आगे की कार्रवाई और हर बड़े अपडेट पर 'राजनीति का अखाड़ा' की टीम लगातार नज़र बनाए हुए है।*`;
+
+    const excerpt = (headline + " | राजनीति का अखाड़ा पर ताज़ा समाचार व विस्तृत रिपोर्ट।").slice(0, 280);
+
+    return { headline, blocks, markdown, excerpt };
+  }
+
   function generateValidSlug(title: string, category: string): string {
     const english = title
       .toLowerCase()
@@ -195,37 +242,21 @@ export function AiRadarPanel({
     try {
       setPublishingId(item.id);
       const targetCategoryId = matchCategory(item.category || item.categoryHindi);
-      
-      const safeTitle = item.title.trim().slice(0, 160);
-      const finalTitle = safeTitle.length < 10 ? safeTitle + " - राजनीति का अखाड़ा" : safeTitle;
-      const safeExcerpt = (item.title.trim() + " | राजनीति का अखाड़ा पर ताज़ा समाचार व ब्रेकिंग अपडेट।").slice(0, 280);
-      const validSlug = generateValidSlug(item.title, item.category || "news");
+      const articleData = buildJournalisticArticle(item);
+      const validSlug = generateValidSlug(articleData.headline, item.category || "news");
 
       const payload = {
-        title: finalTitle,
+        title: articleData.headline.slice(0, 160),
         slug: validSlug,
-        excerpt: safeExcerpt,
-        content: [
-          {
-            type: "paragraph",
-            text: item.title,
-          },
-          {
-            type: "paragraph",
-            text: "📍 श्रेणी: " + (item.categoryHindi || item.category) + " • 📰 स्रोत: " + item.source + "\n\n(राजनीति का अखाड़ा संपादकीय टीम द्वारा सत्यापित)",
-          },
-          {
-            type: "paragraph",
-            text: "मूल स्रोत: " + item.link,
-          }
-        ],
+        excerpt: articleData.excerpt,
+        content: articleData.blocks,
         categoryId: targetCategoryId,
         authorName: currentUser?.name || "संपादक मंडल",
         status: "PUBLISHED",
         publishedAt: new Date().toISOString(),
         trending: true,
-        location: item.category === "hisar" ? "हिसार" : "हरियाणा",
-        tags: [item.categoryHindi || "हरियाणा", "ताज़ा खबर"],
+        location: item.category?.toLowerCase() === "hisar" ? "हिसार" : "हरियाणा",
+        tags: [item.categoryHindi || "हरियाणा", "ताज़ा खबर", "राजनीति"],
       };
 
       const res = await fetch("/api/admin/articles", {
@@ -255,17 +286,17 @@ export function AiRadarPanel({
   function handleEditBeforePublish(item: ViralNewsItem) {
     if (!onOpenEditor) return;
     const targetCategoryId = matchCategory(item.category || item.categoryHindi);
-    const initialContent = "## " + item.title + "\n\n" + item.title + "\n\n📍 श्रेणी: " + (item.categoryHindi || item.category) + "\n📰 स्रोत: " + item.source + "\n🔗 मूल लिंक: " + item.link;
-    const validSlug = generateValidSlug(item.title, item.category || "news");
-    const safeExcerpt = (item.title.trim() + " | राजनीति का अखाड़ा पर ताज़ा समाचार।").slice(0, 280);
+    const articleData = buildJournalisticArticle(item);
+    const validSlug = generateValidSlug(articleData.headline, item.category || "news");
+
     onOpenEditor({
-      title: item.title,
+      title: articleData.headline,
       slug: validSlug,
-      excerpt: safeExcerpt,
-      content: initialContent,
+      excerpt: articleData.excerpt,
+      content: articleData.markdown,
       categoryId: targetCategoryId,
-      location: item.category === "hisar" ? "हिसार" : "हरियाणा",
-      tags: item.categoryHindi || "हरियाणा",
+      location: item.category?.toLowerCase() === "hisar" ? "हिसार" : "हरियाणा",
+      tags: `${item.categoryHindi || "हरियाणा"}, ताज़ा खबर, राजनीति`,
     });
   }
 
@@ -528,58 +559,61 @@ export function AiRadarPanel({
           </div>
 
           {/* Live Preview Modal */}
-          {livePreviewItem && (
-            <div
-              className="fixed inset-0 z-[90] grid place-items-center bg-black/60 p-4 backdrop-blur-xs"
-              onClick={() => setLivePreviewItem(null)}
-            >
+          {livePreviewItem && (() => {
+            const previewData = buildJournalisticArticle(livePreviewItem);
+            return (
               <div
-                className="surface max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl p-6 shadow-2xl border"
-                style={{ borderColor: "var(--line)" }}
-                onClick={(e) => e.stopPropagation()}
+                className="fixed inset-0 z-[90] grid place-items-center bg-black/60 p-4 backdrop-blur-xs"
+                onClick={() => setLivePreviewItem(null)}
               >
-                <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--line)" }}>
-                  <span className="text-xs font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2.5 py-1 rounded-md">
-                    {livePreviewItem.categoryHindi || livePreviewItem.category} • {livePreviewItem.source}
-                  </span>
-                  <span className="text-xs font-bold text-red-600">स्कोर: {livePreviewItem.score}</span>
-                </div>
+                <div
+                  className="surface max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl p-6 shadow-2xl border"
+                  style={{ borderColor: "var(--line)" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--line)" }}>
+                    <span className="text-xs font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2.5 py-1 rounded-md">
+                      {livePreviewItem.categoryHindi || livePreviewItem.category} • AI तैयार समाचार
+                    </span>
+                    <span className="text-xs font-bold text-red-600">वायरल स्कोर: {livePreviewItem.score}</span>
+                  </div>
 
-                <h2 className="mt-4 text-xl font-black leading-snug">{livePreviewItem.title}</h2>
+                  <h2 className="mt-4 text-xl font-black leading-snug">{previewData.headline}</h2>
 
-                <div className="mt-4 rounded-xl bg-black/5 dark:bg-white/5 p-4 text-sm leading-relaxed">
-                  <p className="font-bold">{livePreviewItem.title}</p>
-                  <p className="mt-3 text-xs text-neutral-500">
-                    यह खबर सीधे AI रडार द्वारा लाइव पहचानी गई है। आप इसे तुरंत अपनी वेबसाइट पर पब्लिश कर सकते हैं।
-                  </p>
-                </div>
+                  <div className="mt-4 space-y-3 rounded-xl bg-black/5 dark:bg-white/5 p-5 text-sm leading-relaxed">
+                    {previewData.blocks.map((b, idx) => (
+                      <p key={idx} className={idx === 0 ? "font-semibold text-neutral-900 dark:text-neutral-100" : "text-neutral-700 dark:text-neutral-300"}>
+                        {b.text}
+                      </p>
+                    ))}
+                  </div>
 
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                  <a
-                    href={livePreviewItem.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs brand font-bold flex items-center gap-1"
-                  >
-                    मूल सोर्स खबर देखें <ExternalLink size={12} />
-                  </a>
-
-                  <div className="flex gap-2">
+                  <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
                     <button onClick={() => setLivePreviewItem(null)} className="btn btn-ghost text-sm">
                       बंद करें
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleEditBeforePublish(livePreviewItem);
+                        setLivePreviewItem(null);
+                      }}
+                      className="btn btn-ghost border text-sm font-bold"
+                      style={{ borderColor: "var(--line)" }}
+                    >
+                      ✏️ एडिटर में खोलें / एडिट करें
                     </button>
                     <button
                       onClick={() => handleOneClickPublish(livePreviewItem)}
                       disabled={publishingId === livePreviewItem.id}
                       className="btn btn-primary !bg-emerald-600 hover:!bg-emerald-700 text-sm font-bold"
                     >
-                      {publishingId === livePreviewItem.id ? "पब्लिश हो रहा है..." : "🚀 अभी पब्लिश करें"}
+                      {publishingId === livePreviewItem.id ? "पब्लिश हो रहा है..." : "🚀 तुरंत पब्लिश करें"}
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
