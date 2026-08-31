@@ -30,7 +30,7 @@ export function OpinionDeskSection({ articles }: { articles: PublicArticle[] }) 
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-6 w-6 rounded-full bg-[var(--brand)] text-[10px] font-black flex items-center justify-center text-white uppercase">
-                  {(item.author || "सं")[0]}
+                  {(item.author?.trim() || "संपादक")[0]}
                 </div>
                 <span className="text-xs text-neutral-300 font-bold">{item.author || "संपादक मंडल"}</span>
               </div>

@@ -72,6 +72,7 @@ export function VideoGallerySection() {
                 src={item.thumbnail}
                 alt={item.title}
                 fill
+                unoptimized
                 className="object-cover group-hover:scale-105 transition duration-300 opacity-90"
               />
               <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition" />

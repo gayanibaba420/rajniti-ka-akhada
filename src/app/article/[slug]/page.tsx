@@ -118,7 +118,7 @@ export default async function ArticlePage({ params }: Props) {
           {/* Audio News Bulletin Player */}
           <TextToSpeechPlayer
             title={article.title}
-            text={article.excerpt + " " + (blocks.map((b) => ("text" in b ? b.text : "")).join(" ") || article.content.join(" "))}
+            text={article.excerpt + " " + (blocks.map((b) => ("text" in b ? (b as { text: string }).text : "")).join(" ") || article.content.join(" "))}
           />
 
           <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm no-print" style={{ borderColor: "var(--line)" }}>

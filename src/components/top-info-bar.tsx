@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CloudSun, MessageCircle, TrendingUp, Tv, Newspaper, Calendar } from "lucide-react";
+import { Calendar, MessageCircle, TrendingUp, Tv } from "lucide-react";
 
 interface WeatherCity {
   name: string;
