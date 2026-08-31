@@ -6,7 +6,6 @@ import { EditorsPickBadge } from "@/components/article-badges";
 import { HomepageLiveRefresh } from "@/components/homepage-live-refresh";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { DistrictSelectorBar } from "@/components/district-selector";
-import { WebStoriesSection } from "@/components/web-stories-section";
 import { VideoGallerySection } from "@/components/video-gallery-section";
 import { OpinionPollWidget } from "@/components/opinion-poll-widget";
 import { OpinionDeskSection } from "@/components/opinion-desk-section";
@@ -84,11 +83,6 @@ export default async function Home() {
       <section className="container-main py-4">
         <DbAdSlot position="HEADER" />
       </section>
-
-      {/* Visual Web Stories Carousel */}
-      <div className="container-main">
-        <WebStoriesSection articles={articles} />
-      </div>
 
       {isHomepageSectionEnabled(homepage, "homepage_show_lead") && (
         <section className="container-main grid gap-5 pb-10 lg:grid-cols-[1.65fr_.85fr]">
