@@ -86,7 +86,18 @@ export function AiRadarPanel({
   flash: (s: string) => void;
   meta?: Meta | null;
   currentUser?: User | null;
-  onOpenEditor?: (data: { title?: string; slug?: string; excerpt?: string; content?: string; categoryId?: string; tags?: string; location?: string }) => void;
+  onOpenEditor?: (data: {
+    title?: string;
+    slug?: string;
+    excerpt?: string;
+    content?: string;
+    categoryId?: string;
+    tags?: string;
+    location?: string;
+    highlight?: string;
+    seoTitle?: string;
+    seoDescription?: string;
+  }) => void;
   onRefresh?: () => void;
 }) {
   const [mainTab, setMainTab] = useState<"live" | "gemini">("live");
@@ -297,6 +308,9 @@ ${headline}। इस ताज़ा घटनाक्रम को लेक�
       categoryId: targetCategoryId,
       location: item.category?.toLowerCase() === "hisar" ? "हिसार" : "हरियाणा",
       tags: `${item.categoryHindi || "हरियाणा"}, ताज़ा खबर, राजनीति`,
+      highlight: `${articleData.headline} — प्रशासनिक और राजनीतिक हलकों में हलचल।`,
+      seoTitle: articleData.headline,
+      seoDescription: articleData.excerpt.slice(0, 160),
     });
   }
 

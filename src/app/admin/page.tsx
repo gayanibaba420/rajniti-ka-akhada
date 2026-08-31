@@ -59,7 +59,18 @@ export default function AdminPage() {
   const [active, setActive] = useState<AdminSection>("dashboard");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [editing, setEditing] = useState<ArticleRow | null | "new">(null);
-  const [initialPostData, setInitialPostData] = useState<{ title?: string; slug?: string; excerpt?: string; content?: string; categoryId?: string; tags?: string; location?: string } | null>(null);
+  const [initialPostData, setInitialPostData] = useState<{
+    title?: string;
+    slug?: string;
+    excerpt?: string;
+    content?: string;
+    categoryId?: string;
+    tags?: string;
+    location?: string;
+    highlight?: string;
+    seoTitle?: string;
+    seoDescription?: string;
+  } | null>(null);
   const [editingBlog, setEditingBlog] = useState<BlogRow | null | "new">(null);
   const [notice, setNotice] = useState("");
   const [dbError, setDbError] = useState("");
@@ -123,8 +134,12 @@ export default function AdminPage() {
       );
     }
     if (editing && meta) {
+      const editorKey = editing === "new"
+        ? (initialPostData?.slug ? `ai-${initialPostData.slug}` : `new-post-${initialPostData?.title ? "filled" : "empty"}`)
+        : editing.id;
       return (
         <PostEditor
+          key={editorKey}
           meta={meta}
           article={editing === "new" ? null : editing}
           initialData={editing === "new" ? initialPostData : null}
@@ -207,7 +222,7 @@ export default function AdminPage() {
             meta={meta}
             currentUser={user}
             onOpenEditor={(data) => {
-              clearEditors();
+              setEditingBlog(null);
               setInitialPostData(data);
               setEditing("new");
             }}
