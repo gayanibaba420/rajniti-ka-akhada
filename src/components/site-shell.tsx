@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video as Youtube, X, Radio } from "lucide-react";
+import { Camera as Instagram, Menu, Moon, Search, Share2 as Facebook, Sun, Video as Youtube, X } from "lucide-react";
 import { BRAND_ASSETS, type SiteConfig } from "@/lib/data";
 import type { PublicCategory } from "@/lib/types";
 import { BreakingTickerClient } from "./breaking-ticker";
@@ -123,59 +123,16 @@ export function SiteHeader({
           <Link href="/" className="group min-w-0 leading-none" aria-label={`${site.name} होम`}>
             <SiteBrandLogo />
           </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/ai-newsroom" className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-red-600/10 px-3 py-1.5 text-xs font-black text-red-600 hover:bg-red-600 hover:text-white transition">
-              <span className="h-2 w-2 rounded-full bg-red-600 animate-pulse"></span>
-              🔴 AI NEWS ROOM
-            </Link>
-            <button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button>
-            <ThemeButton />
-          </div>
+          <div className="flex items-center gap-2"><button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button><ThemeButton /></div>
         </div>
-        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}>
-          <div className="container-main flex items-center justify-between gap-4 overflow-auto py-3 text-sm font-extrabold">
-            <Link href="/">होम</Link>
-            {categories.map((c) => (
-              <Link key={c.slug} href={`/category/${c.slug}`} className="whitespace-nowrap hover:text-[var(--brand)]">
-                {c.name}
-              </Link>
-            ))}
-            <Link href="/ai-newsroom" className="inline-flex items-center gap-1 text-red-600 font-black whitespace-nowrap hover:underline">
-              <Radio size={14} /> 🔴 AI न्यूज़ रूम
-            </Link>
-            <Link href="/blog" className="whitespace-nowrap hover:text-[var(--brand)]">ब्लॉग</Link>
-            <Link href="/admin" className="brand">CMS</Link>
-          </div>
-        </nav>
-        {menu && (
-          <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden">
-            <div className="grid grid-cols-2 gap-2">
-              <Link onClick={() => setMenu(false)} href="/ai-newsroom" className="col-span-2 rounded-lg bg-red-600/10 p-3 font-black text-red-600 flex items-center gap-2">
-                <Radio size={16} /> 🔴 AI NEWS ROOM (लाइव रडार)
-              </Link>
-              {categories.map((c) => (
-                <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">
-                  {c.name}
-                </Link>
-              ))}
-              <Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">
-                ब्लॉग
-              </Link>
-              <Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">
-                एडमिन CMS
-              </Link>
-            </div>
-          </nav>
-        )}
+        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}><div className="container-main flex items-center justify-between gap-5 overflow-auto py-3 text-sm font-extrabold"><Link href="/">होम</Link>{categories.map((c) => <Link key={c.slug} href={`/category/${c.slug}`} className="whitespace-nowrap hover:text-[var(--brand)]">{c.name}</Link>)}<Link href="/blog" className="whitespace-nowrap hover:text-[var(--brand)]">ब्लॉग</Link><Link href="/admin" className="brand">CMS</Link></div></nav>
+        {menu && <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden"><div className="grid grid-cols-2 gap-2">{categories.map((c) => <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">{c.name}</Link>)}<Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">ब्लॉग</Link><Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link></div></nav>}
       </header>
       <BreakingTickerClient initialItems={breakingItems} />
       <nav aria-label="श्रेणियां" className="border-b lg:hidden" style={{ borderColor: "var(--line)" }}>
         <div className="container-main category-chips">
           <Link href="/" className={`category-chip ${pathname === "/" ? "text-[var(--brand)] border-[var(--brand)]" : ""}`} aria-current={pathname === "/" ? "page" : undefined}>
             होम
-          </Link>
-          <Link href="/ai-newsroom" className={`category-chip font-black ${pathname === "/ai-newsroom" ? "text-red-600 border-red-600" : "text-red-600"}`}>
-            🔴 AI न्यूज़ रूम
           </Link>
           {categories.map((c) => (
             <Link

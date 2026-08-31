@@ -17,28 +17,30 @@ import type { ArticleRow, MediaItem, Meta, StorageStatus, User } from "./types";
 export function PostEditor({
   meta,
   article,
+  initialData,
   currentUser,
   close,
   onSaved,
 }: {
   meta: Meta;
   article: ArticleRow | null;
+  initialData?: { title?: string; slug?: string; excerpt?: string; content?: string; categoryId?: string; tags?: string; location?: string } | null;
   currentUser?: User | null;
   close: () => void;
   onSaved: (message?: string) => void;
 }) {
   const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const [title, setTitle] = useState(article?.title ?? "");
-  const [slug, setSlug] = useState(article?.slug ?? "");
-  const [excerpt, setExcerpt] = useState(article?.excerpt ?? "");
-  const [body, setBody] = useState(blocksToEditorText(article?.content ?? [{ type: "paragraph", text: "" }]));
+  const [title, setTitle] = useState(article?.title ?? initialData?.title ?? "");
+  const [slug, setSlug] = useState(article?.slug ?? (initialData?.slug || (initialData?.title ? slugify(initialData.title) : "")));
+  const [excerpt, setExcerpt] = useState(article?.excerpt ?? initialData?.excerpt ?? "");
+  const [body, setBody] = useState(article?.content ? blocksToEditorText(article.content) : (initialData?.content ?? ""));
   const [highlight, setHighlight] = useState(article?.highlight ?? "");
-  const [location, setLocation] = useState(article?.location ?? "");
+  const [location, setLocation] = useState(article?.location ?? initialData?.location ?? "");
   const [status, setStatus] = useState(article?.status ?? "DRAFT");
-  const [categoryId, setCategoryId] = useState(article?.category.id ?? meta.categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(article?.category.id ?? initialData?.categoryId ?? meta.categories[0]?.id ?? "");
   const [authorName, setAuthorName] = useState(article?.author.name ?? currentUser?.name ?? "");
-  const [tags, setTags] = useState(article?.tags.map((t) => t.tag.name).join(", ") ?? "");
+  const [tags, setTags] = useState(article?.tags.map((t) => t.tag.name).join(", ") ?? initialData?.tags ?? "");
   const [featured, setFeatured] = useState(article?.featured ?? false);
   const [breaking, setBreaking] = useState(article?.breaking ?? false);
   const [trending, setTrending] = useState(article?.trending ?? false);

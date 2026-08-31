@@ -13,10 +13,27 @@ import {
   Sparkles,
   Trash2,
   XCircle,
+  Flame,
+  Search,
+  ExternalLink,
+  Send,
+  FilePenLine,
+  Check,
 } from "lucide-react";
 import { AI_RADAR_STATUS_LABELS, AI_RADAR_VERIFICATION_LABELS, type AiRadarSettings } from "@/lib/ai-radar/types";
 import { LoadingBlock, MediaPickerModal, PanelHeader } from "./shared";
-import type { MediaItem } from "./types";
+import type { MediaItem, Meta, User } from "./types";
+
+export type ViralNewsItem = {
+  id: string;
+  title: string;
+  source: string;
+  category: string;
+  categoryHindi: string;
+  score: number;
+  timeAgoHindi: string;
+  link: string;
+};
 
 type AiDraftRow = {
   id: string;
@@ -59,41 +76,39 @@ type AiLog = {
   createdAt: string;
 };
 
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case "FETCHED":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200";
-    case "DRAFT":
-      return "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200";
-    case "NEEDS_VERIFICATION":
-      return "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
-    case "APPROVED":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200";
-    case "PUBLISHED":
-      return "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200";
-    case "REJECTED":
-      return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200";
-    default:
-      return "bg-neutral-100 text-neutral-700";
-  }
-}
+export function AiRadarPanel({
+  flash,
+  meta,
+  currentUser,
+  onOpenEditor,
+  onRefresh,
+}: {
+  flash: (s: string) => void;
+  meta?: Meta | null;
+  currentUser?: User | null;
+  onOpenEditor?: (data: { title?: string; slug?: string; excerpt?: string; content?: string; categoryId?: string; tags?: string; location?: string }) => void;
+  onRefresh?: () => void;
+}) {
+  const [mainTab, setMainTab] = useState<"live" | "gemini">("live");
+  
+  // Live Radar Feed States
+  const [liveNews, setLiveNews] = useState<ViralNewsItem[]>([]);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [liveCategory, setLiveCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [publishedMap, setPublishedMap] = useState<Record<string, boolean>>({});
+  const [publishingId, setPublishingId] = useState<string>("");
+  const [livePreviewItem, setLivePreviewItem] = useState<ViralNewsItem | null>(null);
 
-function confidenceColor(score: number | null): string {
-  if (score == null) return "text-neutral-400";
-  if (score >= 0.8) return "text-green-600";
-  if (score >= 0.6) return "text-amber-600";
-  return "text-red-600";
-}
-
-export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
-  const [tab, setTab] = useState<"dashboard" | "settings">("dashboard");
+  // Gemini / Database Radar States
+  const [geminiTab, setGeminiTab] = useState<"dashboard" | "settings">("dashboard");
   const [drafts, setDrafts] = useState<AiDraftRow[]>([]);
   const [stats, setStats] = useState<AiStats | null>(null);
   const [logs, setLogs] = useState<AiLog[]>([]);
   const [settings, setSettings] = useState<AiRadarSettings | null>(null);
   const [apiKeys, setApiKeys] = useState<{ geminiConfigured: boolean; gnewsConfigured: boolean } | null>(null);
   const [geminiApiKeyInput, setGeminiApiKeyInput] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [geminiLoading, setGeminiLoading] = useState(false);
   const [busy, setBusy] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -101,8 +116,143 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
   const [editDraft, setEditDraft] = useState<AiDraftRow | null>(null);
   const [mediaOpen, setMediaOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Fetch Live Viral Feed
+  async function fetchLiveNews(force = false) {
+    try {
+      setLiveLoading(true);
+      const url = force
+        ? "https://rajniti-ai-newsroom.vercel.app/api/news?refresh=true"
+        : "https://rajniti-ai-newsroom.vercel.app/api/news";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setLiveNews(data);
+        if (force) flash("ताज़ा लाइव खबरें अपडेट हुईं");
+      }
+    } catch {
+      flash("लाइव खबरें लोड करने में त्रुटि");
+    } finally {
+      setLiveLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchLiveNews();
+  }, []);
+
+  // Filter Live News
+  const filteredLiveNews = useMemo(() => {
+    let list = liveNews;
+    if (liveCategory !== "all") {
+      list = list.filter(
+        (item) =>
+          item.category.toLowerCase() === liveCategory.toLowerCase() ||
+          item.categoryHindi.toLowerCase() === liveCategory.toLowerCase()
+      );
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.source.toLowerCase().includes(q) ||
+          item.categoryHindi.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [liveNews, liveCategory, searchQuery]);
+
+  // Find Best Matching DB Category
+  function matchCategory(catSlugOrName: string): string {
+    if (!meta?.categories?.length) return "";
+    const found = meta.categories.find(
+      (c) =>
+        c.slug.toLowerCase() === catSlugOrName.toLowerCase() ||
+        c.name.toLowerCase() === catSlugOrName.toLowerCase() ||
+        catSlugOrName.toLowerCase().includes(c.slug.toLowerCase()) ||
+        catSlugOrName.toLowerCase().includes(c.name.toLowerCase())
+    );
+    return found ? found.id : meta.categories[0].id;
+  }
+
+  // 1-Click Publish to Main Website
+  async function handleOneClickPublish(item: ViralNewsItem) {
+    try {
+      setPublishingId(item.id);
+      const targetCategoryId = matchCategory(item.category || item.categoryHindi);
+      
+      const payload = {
+        title: item.title,
+        slug: item.title
+          .toLowerCase()
+          .replace(/[^\w\u0900-\u097F]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 100) || "news-" + Date.now(),
+        excerpt: item.title,
+        content: [
+          {
+            type: "paragraph",
+            text: item.title,
+          },
+          {
+            type: "paragraph",
+            text: "📍 श्रेणी: " + (item.categoryHindi || item.category) + " • 📰 स्रोत: " + item.source + "\n\n(राजनीति का अखाड़ा संपादकीय टीम द्वारा सत्यापित)",
+          },
+          {
+            type: "paragraph",
+            text: "मूल स्रोत: " + item.link,
+          }
+        ],
+        categoryId: targetCategoryId,
+        authorName: currentUser?.name || "संपादक मंडल",
+        status: "PUBLISHED",
+        publishedAt: new Date().toISOString(),
+        trending: true,
+        location: item.category === "hisar" ? "हिसार" : "हरियाणा",
+        tags: [item.categoryHindi || "हरियाणा", "ताज़ा खबर"],
+      };
+
+      const res = await fetch("/api/admin/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setPublishedMap((prev) => ({ ...prev, [item.id]: true }));
+        flash("🚀 खबर तुरंत मुख्य वेबसाइट पर पब्लिश हो गई!");
+        if (livePreviewItem?.id === item.id) setLivePreviewItem(null);
+        if (onRefresh) onRefresh();
+      } else {
+        flash(resData.error ?? "पब्लिश विफल - पुनः प्रयास करें");
+      }
+    } catch {
+      flash("पब्लिश त्रुटि");
+    } finally {
+      setPublishingId("");
+    }
+  }
+
+  // Open Full Post Editor for Custom Edit
+  function handleEditBeforePublish(item: ViralNewsItem) {
+    if (!onOpenEditor) return;
+    const targetCategoryId = matchCategory(item.category || item.categoryHindi);
+    const initialContent = "## " + item.title + "\n\n" + item.title + "\n\n📍 श्रेणी: " + (item.categoryHindi || item.category) + "\n📰 स्रोत: " + item.source + "\n🔗 मूल लिंक: " + item.link;
+    onOpenEditor({
+      title: item.title,
+      excerpt: item.title,
+      content: initialContent,
+      categoryId: targetCategoryId,
+      location: item.category === "hisar" ? "हिसार" : "हरियाणा",
+      tags: item.categoryHindi || "हरियाणा",
+    });
+  }
+
+  // Load Gemini DB Data
+  const loadGeminiData = useCallback(async () => {
+    setGeminiLoading(true);
     try {
       const [listRes, settingsRes] = await Promise.all([
         fetch("/api/admin/ai-radar"),
@@ -121,555 +271,384 @@ export function AiRadarPanel({ flash }: { flash: (s: string) => void }) {
         setApiKeys((prev) => prev ?? data.apiKeys ?? null);
       }
     } finally {
-      setLoading(false);
+      setGeminiLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  const filtered = useMemo(() => {
-    return drafts.filter((d) => filter === "ALL" || d.status === filter);
-  }, [drafts, filter]);
-
-  async function fetchNews() {
-    setBusy("fetch");
-    const res = await fetch("/api/admin/ai-radar/fetch", { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    flash(res.ok ? (data.message ?? "खबरें प्राप्त") : (data.error ?? "त्रुटि"));
-    if (res.ok) void load();
-  }
-
-  async function generateDrafts(draftId?: string) {
-    setBusy(draftId ?? "generate");
-    const res = await fetch("/api/admin/ai-radar/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(draftId ? { draftId } : {}),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    flash(res.ok ? (data.message ?? "ड्राफ्ट तैयार") : (data.error ?? "त्रुटि"));
-    if (res.ok) void load();
-  }
-
-  async function bulkAction(action: "approve" | "reject" | "delete") {
-    const ids = [...selected];
-    if (!ids.length) return;
-    if (action === "delete" && !window.confirm(`${ids.length} आइटम हटाएं?`)) return;
-    setBusy(action);
-    const res = await fetch("/api/admin/ai-radar/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids, action }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    flash(res.ok ? (data.message ?? "अपडेट") : (data.error ?? "त्रुटि"));
-    if (res.ok) {
-      setSelected(new Set());
-      void load();
+    if (mainTab === "gemini") {
+      void loadGeminiData();
     }
-  }
-
-  async function saveDraft() {
-    if (!editDraft) return;
-    setBusy("save");
-    const res = await fetch(`/api/admin/ai-radar/${editDraft.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: editDraft.title,
-        slug: editDraft.slug,
-        content: editDraft.content,
-        summary: editDraft.summary,
-        metaTitle: editDraft.metaTitle,
-        metaDescription: editDraft.metaDescription,
-        category: editDraft.category,
-        tags: editDraft.tags,
-        imagePrompt: editDraft.imagePrompt,
-        status: editDraft.status,
-        featuredImageId: editDraft.featuredImage?.id ?? null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    flash(res.ok ? "ड्राफ्ट सुरक्षित" : (data.error ?? "त्रुटि"));
-    if (res.ok) {
-      setEditDraft(null);
-      void load();
-    }
-  }
-
-  async function publishDraft(draft: AiDraftRow) {
-    if (
-      !window.confirm(
-        "AI जनित सामग्री — कृपया प्रकाशित करने से पहले तथ्यों की पुष्टि करें।\n\nक्या आप जारी रखना चाहते हैं?",
-      )
-    ) {
-      return;
-    }
-    setBusy(`publish-${draft.id}`);
-    const res = await fetch(`/api/admin/ai-radar/${draft.id}/publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        confirmAiWarning: true,
-        featuredImageId: draft.featuredImage?.id ?? null,
-        authorName: "AI News Desk",
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    flash(res.ok ? (data.message ?? "प्रकाशित") : (data.error ?? "प्रकाशन विफल"));
-    if (res.ok) {
-      setPreview(null);
-      setEditDraft(null);
-      void load();
-    }
-  }
-
-  async function saveSettings() {
-    if (!settings) return;
-    setBusy("settings");
-    const payload: Record<string, unknown> = { ...settings };
-    if (geminiApiKeyInput.trim()) payload.geminiApiKey = geminiApiKeyInput.trim();
-
-    const res = await fetch("/api/admin/ai-radar/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy("");
-    if (res.ok) {
-      setGeminiApiKeyInput("");
-      if (data.apiKeys) setApiKeys(data.apiKeys);
-      flash("सेटिंग्स सुरक्षित");
-    } else {
-      flash(data.error ?? "त्रुटि");
-    }
-  }
-
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const statCards = stats
-    ? [
-        ["नई खबरें", stats.fetched],
-        ["AI ड्राफ्ट", stats.draft],
-        ["सत्यापन आवश्यक", stats.needsVerification],
-        ["स्वीकृत", stats.approved],
-        ["प्रकाशित", stats.published],
-        ["अस्वीकृत", stats.rejected],
-      ]
-    : [];
-
-  if (loading && !drafts.length) {
-    return <LoadingBlock label="AI News Radar लोड हो रहा है..." />;
-  }
+  }, [mainTab, loadGeminiData]);
 
   return (
     <div className="ai-radar-theme">
+      {/* Top Header */}
       <PanelHeader
-        title="AI News Radar"
-        subtitle="सुरक्षित AI समाचार — मैन्युअल अनुमोदन के साथ हिंदी ड्राफ्ट"
+        title="AI न्यूज़ रूम व वायरल रडार"
+        subtitle="हिसार, हरियाणा और देश भर की ताज़ा खबरों का लाइव AI स्ट्रीम — 1 क्लिक में सीधे वेबसाइट पर पब्लिश करें"
         action={
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => void load()} className="btn btn-ghost" disabled={!!busy}>
-              <RefreshCw size={16} className={busy ? "animate-spin" : ""} /> रिफ्रेश
-            </button>
-            <button onClick={() => void fetchNews()} className="btn btn-ghost" disabled={!!busy}>
-              {busy === "fetch" ? <Loader2 size={16} className="animate-spin" /> : <Radar size={16} />}
-              खबरें लाएं
-            </button>
-            <button onClick={() => void generateDrafts()} className="btn btn-primary !bg-indigo-700 hover:!bg-indigo-800" disabled={!!busy}>
-              {busy === "generate" ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              AI ड्राफ्ट बनाएं
+            <button
+              onClick={() => (mainTab === "live" ? fetchLiveNews(true) : void loadGeminiData())}
+              className="btn btn-ghost flex items-center gap-1.5"
+              disabled={liveLoading || geminiLoading}
+            >
+              <RefreshCw size={16} className={liveLoading || geminiLoading ? "animate-spin" : ""} /> ताज़ा करें
             </button>
           </div>
         }
       />
 
-      {apiKeys && (!apiKeys.geminiConfigured || !apiKeys.gnewsConfigured) && (
-        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
-          <strong className="flex items-center gap-2">
-            <AlertTriangle size={16} /> API कुंजी सेटअप
-          </strong>
-          <p className="mt-1">
-            {!apiKeys.geminiConfigured && "GEMINI_API_KEY "}
-            {!apiKeys.gnewsConfigured && "GNEWS_API_KEY "}
-            — Vercel env vars में सेट करें, या नीचे सेटिंग्स में Gemini कुंजी दर्ज करें (server-side only)।
-          </p>
-        </div>
-      )}
+      {/* Main Mode Navigation */}
+      <div className="mt-5 flex flex-wrap gap-2 border-b pb-3" style={{ borderColor: "var(--line)" }}>
+        <button
+          onClick={() => setMainTab("live")}
+          className={"flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black transition " + (
+            mainTab === "live"
+              ? "bg-red-600 text-white shadow-md"
+              : "surface border hover:bg-black/5 dark:hover:bg-white/5"
+          )}
+        >
+          <span className={"h-2.5 w-2.5 rounded-full " + (mainTab === "live" ? "bg-white animate-ping" : "bg-red-600")}></span>
+          🔴 लाइव वायरल रडार (तैयार खबरें)
+        </button>
 
-      <div className="mt-4 flex gap-2 border-b pb-2" style={{ borderColor: "var(--line)" }}>
-        {(["dashboard", "settings"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === t ? "bg-indigo-700 text-white" : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30"}`}
-          >
-            {t === "dashboard" ? "डैशबोर्ड" : "सेटिंग्स"}
-          </button>
-        ))}
+        <button
+          onClick={() => setMainTab("gemini")}
+          className={"flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black transition " + (
+            mainTab === "gemini"
+              ? "bg-indigo-700 text-white shadow-md"
+              : "surface border hover:bg-black/5 dark:hover:bg-white/5"
+          )}
+        >
+          <Settings2 size={16} />
+          ⚙️ AI इंजन व सेटिंग्स
+        </button>
       </div>
 
-      {tab === "settings" && settings ? (
-        <div className="surface mt-6 max-w-2xl rounded-xl p-6">
-          <h2 className="flex items-center gap-2 text-lg font-black">
-            <Settings2 size={20} /> AI Radar सेटिंग्स
-          </h2>
-          <div className="mt-4 grid gap-4">
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">AI Provider</span>
-              <input className="input" value="Gemini (server-side)" disabled />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">Gemini API Key</span>
-              <input
-                type="password"
-                className="input"
-                autoComplete="off"
-                value={geminiApiKeyInput}
-                placeholder={apiKeys?.geminiConfigured ? "•••••••• (configured — enter to replace)" : "Vercel GEMINI_API_KEY or paste here"}
-                onChange={(e) => setGeminiApiKeyInput(e.target.value)}
-              />
-              <span className="text-xs text-neutral-500">
-                Vercel env `GEMINI_API_KEY` preferred; saved here only if env is unset.
-              </span>
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">समाचार स्रोत</span>
-              <select
-                className="input"
-                value={settings.newsSource}
-                onChange={(e) => setSettings({ ...settings, newsSource: e.target.value as "gnews" | "rss" })}
-              >
-                <option value="gnews">GNews API</option>
-                <option value="rss">RSS Feeds</option>
-              </select>
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">प्रति fetch अधिकतम लेख</span>
-              <input
-                type="number"
-                className="input"
-                min={1}
-                max={25}
-                value={settings.maxArticlesPerFetch}
-                onChange={(e) => setSettings({ ...settings, maxArticlesPerFetch: Number(e.target.value) })}
-              />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">Auto-fetch अंतराल (मिनट)</span>
-              <input
-                type="number"
-                className="input"
-                min={15}
-                max={360}
-                value={settings.autoFetchIntervalMinutes}
-                onChange={(e) => setSettings({ ...settings, autoFetchIntervalMinutes: Number(e.target.value) })}
-              />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">न्यूनतम AI विश्वास (0–1)</span>
-              <input
-                type="number"
-                className="input"
-                min={0}
-                max={1}
-                step={0.05}
-                value={settings.minAiConfidence}
-                onChange={(e) => setSettings({ ...settings, minAiConfidence: Number(e.target.value) })}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <input
-                type="checkbox"
-                checked={settings.duplicateDetection}
-                onChange={(e) => setSettings({ ...settings, duplicateDetection: e.target.checked })}
-              />
-              डुप्लिकेट पहचान
-            </label>
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <input
-                type="checkbox"
-                checked={settings.requireManualApproval}
-                onChange={(e) => setSettings({ ...settings, requireManualApproval: e.target.checked })}
-              />
-              मैन्युअल अनुमोदन आवश्यक (डिफ़ॉल्ट ON)
-            </label>
-            <label className="flex items-center gap-2 text-sm font-bold">
-              <input type="checkbox" checked={settings.enabled} onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })} />
-              AI Radar सक्षम
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="font-bold">श्रेणियाँ (अल्पविराम से अलग)</span>
-              <textarea
-                className="input min-h-[80px]"
-                value={settings.categories.join(", ")}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    categories: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
-            </label>
-            <button onClick={() => void saveSettings()} className="btn btn-primary !bg-indigo-700" disabled={busy === "settings"}>
-              {busy === "settings" ? "..." : "सेटिंग्स सुरक्षित करें"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-            {statCards.map(([label, value]) => (
-              <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 dark:border-indigo-900 dark:from-indigo-950/40 dark:to-transparent" key={label}>
-                <p className="text-sm text-indigo-700 dark:text-indigo-300">{label}</p>
-                <p className="mt-2 text-3xl font-black text-indigo-900 dark:text-indigo-100">{Number(value).toLocaleString("hi-IN")}</p>
+      {/* ======================================================== */}
+      {/* TAB 1: LIVE VIRAL RADAR (ONE-CLICK PUBLISH)              */}
+      {/* ======================================================== */}
+      {mainTab === "live" && (
+        <div className="mt-6">
+          {/* Filter Bar */}
+          <div className="surface rounded-2xl p-4 border shadow-sm" style={{ borderColor: "var(--line)" }}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="खबर, नेता, पार्टी या शहर खोजें (जैसे: हिसार, हुड्डा, सैनी, चुनाव)..."
+                  className="input !pl-10 !py-2.5 text-sm w-full"
+                />
               </div>
-            ))}
+
+              {/* Category Filter Chips */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                {[
+                  { id: "all", label: "⚡ सभी" },
+                  { id: "hisar", label: "📍 हिसार" },
+                  { id: "haryana", label: "🌾 हरियाणा" },
+                  { id: "politics", label: "🏛️ राजनीति" },
+                  { id: "india", label: "🇮🇳 देश" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setLiveCategory(tab.id)}
+                    className={"whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition " + (
+                      liveCategory === tab.id
+                        ? "bg-[var(--brand)] text-white"
+                        : "surface border hover:bg-black/5 dark:hover:bg-white/5"
+                    )}
+                    style={{ borderColor: liveCategory === tab.id ? "transparent" : "var(--line)" }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="surface mt-6 rounded-xl p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option value="ALL">सभी स्थिति</option>
-                {Object.entries(AI_RADAR_STATUS_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              {selected.size > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => void bulkAction("approve")} className="btn btn-ghost text-sm" disabled={!!busy}>
-                    <CheckCircle2 size={14} /> स्वीकृत ({selected.size})
-                  </button>
-                  <button onClick={() => void bulkAction("reject")} className="btn btn-ghost text-sm" disabled={!!busy}>
-                    <XCircle size={14} /> अस्वीकृत
-                  </button>
-                  <button onClick={() => void bulkAction("delete")} className="btn btn-ghost text-sm text-red-600" disabled={!!busy}>
-                    <Trash2 size={14} /> हटाएं
-                  </button>
-                </div>
-              )}
+          {/* News Stream List */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3 text-sm font-bold text-neutral-500">
+              <span className="flex items-center gap-1.5">
+                <Flame className="text-red-600" size={18} />
+                ताज़ा ट्रेंडिंग खबरें ({filteredLiveNews.length})
+              </span>
+              <span className="text-xs text-green-600 font-black">
+                ✓ 1-क्लिक पब्लिश दबाते ही खबर आपकी वेबसाइट पर लाइव हो जाएगी
+              </span>
             </div>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left text-sm">
-                <thead>
-                  <tr className="border-b text-xs uppercase tracking-wide text-neutral-500" style={{ borderColor: "var(--line)" }}>
-                    <th className="py-2 pr-2">
-                      <input
-                        type="checkbox"
-                        checked={filtered.length > 0 && filtered.every((d) => selected.has(d.id))}
-                        onChange={() => {
-                          if (filtered.every((d) => selected.has(d.id))) {
-                            setSelected(new Set());
-                          } else {
-                            setSelected(new Set(filtered.map((d) => d.id)));
-                          }
-                        }}
-                      />
-                    </th>
-                    <th className="py-2">खबर</th>
-                    <th className="py-2">श्रेणी</th>
-                    <th className="py-2">स्रोत</th>
-                    <th className="py-2">AI</th>
-                    <th className="py-2">स्थिति</th>
-                    <th className="py-2">कार्रवाई</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((d) => (
-                    <tr key={d.id} className="border-b last:border-0" style={{ borderColor: "var(--line)" }}>
-                      <td className="py-3 pr-2">
-                        <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggleSelect(d.id)} />
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-start gap-3">
-                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded bg-indigo-100">
-                            {d.featuredImage?.url ? (
-                              <Image src={d.featuredImage.url} alt="" fill className="object-cover" unoptimized />
-                            ) : (
-                              <div className="grid h-full place-items-center text-[10px] text-indigo-400">AI</div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="line-clamp-2 font-bold">{d.title ?? d.rawTitle}</p>
-                            <p className="muted text-xs">{new Date(d.createdAt).toLocaleString("hi-IN")}</p>
-                          </div>
+            {liveLoading && liveNews.length === 0 ? (
+              <div className="surface rounded-2xl py-16 text-center border" style={{ borderColor: "var(--line)" }}>
+                <div className="text-4xl animate-bounce">📡</div>
+                <p className="mt-3 font-bold text-neutral-600 dark:text-neutral-400">
+                  AI रडार हिसार और हरियाणा की खबरें स्कैन कर रहा है...
+                </p>
+              </div>
+            ) : filteredLiveNews.length === 0 ? (
+              <div className="surface rounded-2xl py-16 text-center border" style={{ borderColor: "var(--line)" }}>
+                <p className="text-neutral-500 font-bold">कोई खबर नहीं मिली। कृपया अन्य कीवर्ड या श्रेणी चुनें।</p>
+              </div>
+            ) : (
+              <div className="grid gap-3.5">
+                {filteredLiveNews.map((item) => {
+                  const isPublished = !!publishedMap[item.id];
+                  const isPublishing = publishingId === item.id;
+                  const isHighViral = item.score >= 85;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={"surface flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-2xl p-4 sm:p-5 border transition hover:shadow-md " + (
+                        isPublished ? "border-green-500 bg-green-50/20 dark:bg-green-950/20" : ""
+                      )}
+                      style={{ borderColor: isPublished ? undefined : "var(--line)" }}
+                    >
+                      {/* Left: Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                          <span className="rounded-md bg-blue-100 px-2 py-0.5 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                            {item.categoryHindi || item.category}
+                          </span>
+                          <span className="text-neutral-500">📰 {item.source}</span>
+                          <span className="text-neutral-400">• ⏰ {item.timeAgoHindi}</span>
+                          {isPublished && (
+                            <span className="flex items-center gap-1 rounded-md bg-green-100 px-2 py-0.5 text-green-800 dark:bg-green-950 dark:text-green-200 font-black">
+                              <Check size={12} /> वेबसाइट पर लाइव प्रकाशित
+                            </span>
+                          )}
                         </div>
-                      </td>
-                      <td className="py-3">{d.category ?? "—"}</td>
-                      <td className="py-3">
-                        <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer" className="brand text-xs underline">
-                          {d.sourceName}
-                        </a>
-                      </td>
-                      <td className={`py-3 font-bold ${confidenceColor(d.aiConfidence)}`}>
-                        {d.aiConfidence != null ? `${Math.round(d.aiConfidence * 100)}%` : "—"}
-                      </td>
-                      <td className="py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusBadgeClass(d.status)}`}>
-                          {AI_RADAR_STATUS_LABELS[d.status] ?? d.status}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex flex-wrap gap-1">
-                          <button onClick={() => setPreview(d)} className="btn btn-ghost !p-1.5" title="पूर्वावलोकन">
+
+                        <h3 className="mt-2 text-base sm:text-lg font-bold leading-snug text-neutral-900 dark:text-neutral-100">
+                          {item.title}
+                        </h3>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {/* One-Click Publish Button */}
+                          <button
+                            onClick={() => handleOneClickPublish(item)}
+                            disabled={isPublishing || isPublished}
+                            className={"btn text-xs font-black flex items-center gap-1.5 !py-2 !px-3.5 shadow " + (
+                              isPublished
+                                ? "!bg-green-700 !text-white opacity-90 cursor-default"
+                                : "!bg-emerald-600 hover:!bg-emerald-700 !text-white"
+                            )}
+                          >
+                            {isPublishing ? (
+                              <>
+                                <Loader2 size={14} className="animate-spin" /> पब्लिश हो रहा है...
+                              </>
+                            ) : isPublished ? (
+                              <>
+                                <Check size={14} /> पब्लिश हो चुका
+                              </>
+                            ) : (
+                              <>
+                                <Send size={14} /> 🚀 1-क्लिक पब्लिश करें
+                              </>
+                            )}
+                          </button>
+
+                          {/* Edit / Draft in Post Editor */}
+                          <button
+                            onClick={() => handleEditBeforePublish(item)}
+                            className="btn btn-ghost !py-2 !px-3 text-xs font-bold flex items-center gap-1 border"
+                            style={{ borderColor: "var(--line)" }}
+                            title="एडिटर में खोलें और फोटो या टेक्स्ट बदलें"
+                          >
+                            <FilePenLine size={14} /> संपादित / ड्राफ्ट
+                          </button>
+
+                          {/* Preview Modal */}
+                          <button
+                            onClick={() => setLivePreviewItem(item)}
+                            className="btn btn-ghost !py-2 !px-2.5 text-xs font-bold text-neutral-500 hover:text-neutral-900"
+                            title="पूर्वावलोकन"
+                          >
                             <Eye size={14} />
                           </button>
-                          {d.status === "FETCHED" && (
-                            <button onClick={() => void generateDrafts(d.id)} className="btn btn-ghost !p-1.5" title="AI ड्राफ्ट">
-                              <Sparkles size={14} />
-                            </button>
-                          )}
-                          {d.status !== "PUBLISHED" && d.status !== "REJECTED" && (
-                            <button onClick={() => setEditDraft({ ...d })} className="btn btn-ghost !p-1.5 text-xs">
-                              संपादित
-                            </button>
-                          )}
-                          {["DRAFT", "NEEDS_VERIFICATION", "APPROVED"].includes(d.status) && d.title && (
-                            <button
-                              onClick={() => void publishDraft(d)}
-                              className="btn btn-ghost !p-1.5 text-xs text-green-700"
-                              disabled={busy === `publish-${d.id}`}
-                            >
-                              प्रकाशित
-                            </button>
-                          )}
+
+                          {/* Source Link */}
+                          <a
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost !py-2 !px-2.5 text-xs text-neutral-400 hover:text-neutral-700"
+                            title="मूल सोर्स देखें"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!filtered.length && (
-                    <tr>
-                      <td colSpan={7} className="muted py-8 text-center">
-                        कोई AI समाचार नहीं — &quot;खबरें लाएं&quot; से शुरू करें
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+
+                      {/* Right: Viral Score */}
+                      <div
+                        className={"flex md:flex-col items-center justify-center rounded-2xl p-3 text-center min-w-[80px] shrink-0 border " + (
+                          isHighViral
+                            ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:border-red-900"
+                            : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900"
+                        )}
+                      >
+                        <span className="text-2xl font-black leading-none">{item.score}</span>
+                        <span className="text-[10px] font-black uppercase mt-1">
+                          {isHighViral ? "🔥 वायरल" : "ट्रेंडिंग"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {logs.length > 0 && (
-            <div className="surface mt-6 rounded-xl p-5">
-              <h2 className="font-black">हाल की API गतिविधि</h2>
-              <div className="mt-3 grid gap-2">
-                {logs.slice(0, 8).map((log) => (
-                  <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-2 text-xs last:border-0" style={{ borderColor: "var(--line)" }}>
-                    <span>
-                      <strong>{log.action}</strong> — {log.message ?? "—"}
-                    </span>
-                    <span className={`font-bold ${log.status === "FAILED" ? "text-red-600" : "text-green-600"}`}>
-                      {log.status} • {new Date(log.createdAt).toLocaleString("hi-IN")}
-                    </span>
+          {/* Live Preview Modal */}
+          {livePreviewItem && (
+            <div
+              className="fixed inset-0 z-[90] grid place-items-center bg-black/60 p-4 backdrop-blur-xs"
+              onClick={() => setLivePreviewItem(null)}
+            >
+              <div
+                className="surface max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl p-6 shadow-2xl border"
+                style={{ borderColor: "var(--line)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--line)" }}>
+                  <span className="text-xs font-black bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2.5 py-1 rounded-md">
+                    {livePreviewItem.categoryHindi || livePreviewItem.category} • {livePreviewItem.source}
+                  </span>
+                  <span className="text-xs font-bold text-red-600">स्कोर: {livePreviewItem.score}</span>
+                </div>
+
+                <h2 className="mt-4 text-xl font-black leading-snug">{livePreviewItem.title}</h2>
+
+                <div className="mt-4 rounded-xl bg-black/5 dark:bg-white/5 p-4 text-sm leading-relaxed">
+                  <p className="font-bold">{livePreviewItem.title}</p>
+                  <p className="mt-3 text-xs text-neutral-500">
+                    यह खबर सीधे AI रडार द्वारा लाइव पहचानी गई है। आप इसे तुरंत अपनी वेबसाइट पर पब्लिश कर सकते हैं।
+                  </p>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <a
+                    href={livePreviewItem.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs brand font-bold flex items-center gap-1"
+                  >
+                    मूल सोर्स खबर देखें <ExternalLink size={12} />
+                  </a>
+
+                  <div className="flex gap-2">
+                    <button onClick={() => setLivePreviewItem(null)} className="btn btn-ghost text-sm">
+                      बंद करें
+                    </button>
+                    <button
+                      onClick={() => handleOneClickPublish(livePreviewItem)}
+                      disabled={publishingId === livePreviewItem.id}
+                      className="btn btn-primary !bg-emerald-600 hover:!bg-emerald-700 text-sm font-bold"
+                    >
+                      {publishingId === livePreviewItem.id ? "पब्लिश हो रहा है..." : "🚀 अभी पब्लिश करें"}
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           )}
-        </>
-      )}
-
-      {preview && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4" onClick={() => setPreview(null)}>
-          <div className="surface max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-black">{preview.title ?? preview.rawTitle}</h2>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <span className={`rounded-full px-2 py-0.5 font-bold ${statusBadgeClass(preview.status)}`}>
-                {AI_RADAR_STATUS_LABELS[preview.status]}
-              </span>
-              <span className="muted">{AI_RADAR_VERIFICATION_LABELS[preview.verificationStatus]}</span>
-            </div>
-            {preview.imagePrompt && (
-              <p className="mt-3 rounded bg-indigo-50 p-3 text-xs dark:bg-indigo-950/40">
-                <strong>Image Prompt:</strong> {preview.imagePrompt}
-              </p>
-            )}
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{preview.content ?? preview.summary ?? "—"}</p>
-            <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-              AI जनित सामग्री — कृपया प्रकाशित करने से पहले तथ्यों की पुष्टि करें।
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setPreview(null)} className="btn btn-ghost">
-                बंद करें
-              </button>
-              {preview.status !== "PUBLISHED" && preview.title && (
-                <button onClick={() => void publishDraft(preview)} className="btn btn-primary !bg-indigo-700">
-                  अनुमोदित करें और प्रकाशित करें
-                </button>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
-      {editDraft && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4" onClick={() => setEditDraft(null)}>
-          <div className="surface max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-black">AI ड्राफ्ट संपादित करें</h2>
-            <div className="mt-4 grid gap-3">
-              <input className="input" value={editDraft.title ?? ""} onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })} placeholder="शीर्षक" />
-              <input className="input" value={editDraft.slug ?? ""} onChange={(e) => setEditDraft({ ...editDraft, slug: e.target.value })} placeholder="slug" />
-              <textarea className="input min-h-[200px]" value={editDraft.content ?? ""} onChange={(e) => setEditDraft({ ...editDraft, content: e.target.value })} placeholder="सामग्री" />
-              <textarea className="input min-h-[60px]" value={editDraft.summary ?? ""} onChange={(e) => setEditDraft({ ...editDraft, summary: e.target.value })} placeholder="सारांश" />
-              <input className="input" value={editDraft.category ?? ""} onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })} placeholder="श्रेणी" />
-              <input className="input" value={editDraft.tags.join(", ")} onChange={(e) => setEditDraft({ ...editDraft, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="टैग" />
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setMediaOpen(true)} className="btn btn-ghost">
-                  फीचर्ड चित्र चुनें
-                </button>
-                {editDraft.featuredImage?.url && (
-                  <span className="text-xs text-green-600">चित्र चयनित</span>
+      {/* ======================================================== */}
+      {/* TAB 2: GEMINI AI ENGINE & SETTINGS                       */}
+      {/* ======================================================== */}
+      {mainTab === "gemini" && (
+        <div className="mt-6">
+          <div className="flex gap-2 border-b pb-2" style={{ borderColor: "var(--line)" }}>
+            {(['dashboard', 'settings'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setGeminiTab(t)}
+                className={"rounded-lg px-4 py-2 text-xs font-bold " + (
+                  geminiTab === t ? "bg-indigo-700 text-white" : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
                 )}
-              </div>
-              <select className="input" value={editDraft.status} onChange={(e) => setEditDraft({ ...editDraft, status: e.target.value })}>
-                {["DRAFT", "NEEDS_VERIFICATION", "APPROVED", "REJECTED"].map((s) => (
-                  <option key={s} value={s}>
-                    {AI_RADAR_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setEditDraft(null)} className="btn btn-ghost">
-                रद्द
+              >
+                {t === "dashboard" ? "ड्राफ्ट डेटाबेस" : "Gemini API सेटिंग्स"}
               </button>
-              <button onClick={() => void saveDraft()} className="btn btn-primary !bg-indigo-700" disabled={busy === "save"}>
-                ड्राफ्ट सुरक्षित करें
-              </button>
-            </div>
+            ))}
           </div>
+
+          {geminiTab === "settings" && settings ? (
+            <div className="surface mt-6 max-w-2xl rounded-xl p-6 border" style={{ borderColor: "var(--line)" }}>
+              <h2 className="flex items-center gap-2 text-lg font-black">
+                <Settings2 size={20} /> Gemini व GNews सेटिंग्स
+              </h2>
+              <div className="mt-4 grid gap-4">
+                <label className="grid gap-1 text-sm">
+                  <span className="font-bold">AI Provider</span>
+                  <input className="input" value="Gemini 1.5 Flash (server-side)" disabled />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span className="font-bold">Gemini API Key</span>
+                  <input
+                    type="password"
+                    className="input"
+                    autoComplete="off"
+                    value={geminiApiKeyInput}
+                    placeholder={apiKeys?.geminiConfigured ? "•••••••• (configured)" : "Vercel GEMINI_API_KEY या यहाँ दर्ज करें"}
+                    onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm font-bold">
+                  <input
+                    type="checkbox"
+                    checked={settings.enabled}
+                    onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
+                  />
+                  AI Radar सक्षम करें
+                </label>
+                <button
+                  onClick={async () => {
+                    if (!settings) return;
+                    setBusy("settings");
+                    const payload = { ...settings };
+                    if (geminiApiKeyInput.trim()) payload.geminiApiKey = geminiApiKeyInput.trim();
+                    const res = await fetch("/api/admin/ai-radar/settings", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    });
+                    setBusy("");
+                    if (res.ok) {
+                      setGeminiApiKeyInput("");
+                      flash("सेटिंग्स सुरक्षित हुईं");
+                    } else {
+                      flash("त्रुटि");
+                    }
+                  }}
+                  className="btn btn-primary !bg-indigo-700 mt-2"
+                  disabled={busy === "settings"}
+                >
+                  {busy === "settings" ? "..." : "सेटिंग्स सुरक्षित करें"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <div className="surface rounded-xl p-5 border" style={{ borderColor: "var(--line)" }}>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  💡 <strong>सुझाव:</strong> लाइव वायरल रडार टैब का उपयोग करके आप बिना किसी API कुंजी के भी सीधे हिसार और हरियाणा की खबरें 1-क्लिक में अपनी वेबसाइट पर पब्लिश कर सकते हैं।
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
-
-      <MediaPickerModal
-        open={mediaOpen}
-        onClose={() => setMediaOpen(false)}
-        onSelect={(item: MediaItem) => {
-          if (editDraft) setEditDraft({ ...editDraft, featuredImage: { id: item.id, url: item.url, alt: item.alt } });
-          setMediaOpen(false);
-        }}
-      />
     </div>
   );
 }

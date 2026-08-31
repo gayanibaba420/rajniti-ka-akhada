@@ -59,6 +59,7 @@ export default function AdminPage() {
   const [active, setActive] = useState<AdminSection>("dashboard");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [editing, setEditing] = useState<ArticleRow | null | "new">(null);
+  const [initialPostData, setInitialPostData] = useState<{ title?: string; slug?: string; excerpt?: string; content?: string; categoryId?: string; tags?: string; location?: string } | null>(null);
   const [editingBlog, setEditingBlog] = useState<BlogRow | null | "new">(null);
   const [notice, setNotice] = useState("");
   const [dbError, setDbError] = useState("");
@@ -108,6 +109,7 @@ export default function AdminPage() {
 
   function clearEditors() {
     setEditing(null);
+    setInitialPostData(null);
     setEditingBlog(null);
   }
 
@@ -125,10 +127,15 @@ export default function AdminPage() {
         <PostEditor
           meta={meta}
           article={editing === "new" ? null : editing}
+          initialData={editing === "new" ? initialPostData : null}
           currentUser={user}
-          close={() => setEditing(null)}
+          close={() => {
+            setEditing(null);
+            setInitialPostData(null);
+          }}
           onSaved={(msg) => {
             setEditing(null);
+            setInitialPostData(null);
             load();
             flash(msg ?? "सुरक्षित किया गया");
           }}
@@ -194,7 +201,19 @@ export default function AdminPage() {
       case "ads":
         return <AdsPanel flash={flash} />;
       case "ai-radar":
-        return <AiRadarPanel flash={flash} />;
+        return (
+          <AiRadarPanel
+            flash={flash}
+            meta={meta}
+            currentUser={user}
+            onOpenEditor={(data) => {
+              clearEditors();
+              setInitialPostData(data);
+              setEditing("new");
+            }}
+            onRefresh={load}
+          />
+        );
       case "settings":
         return <SettingsPanelUnified flash={flash} />;
       default:
