@@ -616,7 +616,7 @@ export function AiRadarPanel({
                   onClick={async () => {
                     if (!settings) return;
                     setBusy("settings");
-                    const payload = { ...settings };
+                    const payload: Record<string, unknown> = { ...settings };
                     if (geminiApiKeyInput.trim()) payload.geminiApiKey = geminiApiKeyInput.trim();
                     const res = await fetch("/api/admin/ai-radar/settings", {
                       method: "PUT",

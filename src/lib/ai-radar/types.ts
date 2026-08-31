@@ -23,6 +23,7 @@ export interface AiRadarSettings {
   requireManualApproval: boolean;
   categories: string[];
   enabled: boolean;
+  geminiApiKey?: string;
 }
 
 export const DEFAULT_AI_RADAR_SETTINGS: AiRadarSettings = {
