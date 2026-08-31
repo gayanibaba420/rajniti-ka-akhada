@@ -104,28 +104,114 @@ export function PostEditor({
       .finally(() => setAiNewsLoading(false));
   }
 
-  function applyAiNewsItem(item: { title: string; category: string; categoryHindi: string; source: string }) {
-    const headline = item.title.replace(/\s*\.\.\.\s*$/, "").replace(/\s*-\s*[A-Za-z\u0900-\u097F\s]+$/, "").trim();
-    const catLower = (item.category || "").toLowerCase();
-    const loc = catLower === "hisar" ? "हिसार" : catLower === "haryana" ? "हरियाणा/चंडीगढ़" : catLower === "politics" ? "राजनीतिक डेस्क" : "देश/नई दिल्ली";
-    const dateStr = new Intl.DateTimeFormat("hi-IN", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  async function applyAiNewsItem(item: { title: string; category: string; categoryHindi: string; source: string }) {
+    setAiNewsLoading(true);
+    const cleanHeadline = item.title
+      .replace(/\s*\.\.\.\s*$/, "")
+      .replace(/\s*-\s*[A-Za-z\u0900-\u097F\s]+$/, "")
+      .trim();
 
-    const p1 = `${loc} | ${dateStr} (राजनीति का अखाड़ा ब्यूरो): ${headline}। इस ताज़ा घटनाक्रम को लेकर क्षेत्र और संबंधित हलकों में व्यापक चर्चा का माहौल बना हुआ है तथा प्रशासनिक स्तर पर भी हलचल तेज़ हो गई है।`;
-    const p2 = `प्राप्त विवरण के अनुसार, पूरे मामले को लेकर संबंधित विभागों और अधिकारियों द्वारा स्थिति की लगातार निगरानी की जा रही है। घटना से जुड़े मुख्य बिंदुओं पर नज़र डालें तो इस विषय पर विभिन्न पक्षों द्वारा अपनी-अपनी प्रतिक्रियाएं सामने आई हैं। स्थानीय नागरिकों एवं संबंधित वर्ग की ओर से भी इस पर गंभीरता से ध्यान दिया जा रहा है।`;
-    const p3 = `राजनीतिक और सामाजिक जानकारों का मानना है कि इस घटनाक्रम के आगामी दिनों में कई अहम प्रभाव देखने को मिल सकते हैं। क्षेत्र में व्यवस्था बनाए रखने और जनसरोकार के मुद्दों को प्राथमिकता देने के लिए संबंधित तंत्र भी पूरी तरह सक्रिय है।`;
-    const p4 = `इस पूरे मामले पर आगे की कार्रवाई और हर बड़े अपडेट पर 'राजनीति का अखाड़ा' की टीम लगातार नज़र बनाए हुए है। विश्वसनीय और निष्पक्ष समाचारों के लिए जुड़े रहें।`;
+    try {
+      const expandRes = await fetch("/api/admin/ai-radar/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item.title,
+          category: item.category,
+          categoryHindi: item.categoryHindi,
+          source: item.source,
+        }),
+      });
 
-    const md = `## ${headline}
+      if (expandRes.ok) {
+        const j = await expandRes.json();
+        if (j.articleData?.article) {
+          const exp = j.articleData;
+          const matchedCat = meta.categories.find(
+            (c) =>
+              c.slug.toLowerCase() === (item.category || "").toLowerCase() ||
+              c.name.toLowerCase() === (item.categoryHindi || "").toLowerCase() ||
+              (item.category || "").toLowerCase().includes(c.slug.toLowerCase())
+          );
 
-**${loc} | ${dateStr} (राजनीति का अखाड़ा ब्यूरो)**
+          setTitle(exp.headline || cleanHeadline);
+          setSlug(exp.slug || slugify((item.category || "news") + "-" + Date.now().toString(36)));
+          setExcerpt(exp.excerpt || cleanHeadline);
+          setBody(exp.article);
+          setHighlight(exp.highlight || `${cleanHeadline} — सियासी हलचल तेज़।`);
+          setLocation(exp.location || "हरियाणा");
+          if (matchedCat) setCategoryId(matchedCat.id);
+          setTags(Array.isArray(exp.tags) ? exp.tags.join(", ") : `${item.categoryHindi || "हरियाणा"}, ताज़ा खबर, राजनीति`);
+          setSeoTitle(exp.seoTitle || cleanHeadline);
+          setSeoDescription(exp.seoDescription || exp.excerpt || cleanHeadline);
+          setAiModalOpen(false);
+          setAiNewsLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // fallback
+    }
 
-${headline}। इस ताज़ा घटनाक्रम को लेकर क्षेत्र और संबंधित हलकों में व्यापक चर्चा का माहौल बना हुआ है तथा प्रशासनिक स्तर पर भी हलचल तेज़ हो गई है।
+    // Client-side topic-specific fallback
+    const now = new Date();
+    const dateStr = new Intl.DateTimeFormat("hi-IN", { day: "numeric", month: "long", year: "numeric" }).format(now);
+    const isHisar = /हिसार|hisar/i.test(cleanHeadline) || /hisar/i.test(item.category || "");
+    const isAssembly = /विधानसभा|मानसून सत्र|विपक्ष|हुड्डा|विज|सैनी|विधायक|स्पीकर|सदन/i.test(cleanHeadline);
+    const isCrimeOrPolice = /पुलिस|गुंडागर्दी|क्राइम|मुकदमा|हादसा|गिरफ्तार|जांच|कोहनी|एफआईआर|हत्या/i.test(cleanHeadline);
+    const isFarmerOrGov = /किसान|एमएसपी|योजना|विकास|सड़क|मुआवजा|पोर्टल|बजट|बिजली|पानी/i.test(cleanHeadline);
+    const loc = isHisar ? "हिसार" : isAssembly ? "चंडीगढ़/विधानसभा" : "हरियाणा";
 
-### मुख्य घटनाक्रम व विवरण
+    const parts = cleanHeadline.split(/[:|—–-]/).map((s) => s.trim()).filter(Boolean);
+    const mainEvent = parts[0] || cleanHeadline;
+    const subStatement = parts[1] || "";
+
+    let p1 = `**${loc} | ${dateStr} (राजनीति का अखाड़ा ब्यूरो)**: ${cleanHeadline}। `;
+    if (subStatement) {
+      p1 += `इस ताज़ा घटनाक्रम में "${subStatement}" का बयान व पहलू सबसे प्रमुखता से सामने आया है। `;
+    }
+    p1 += `इस मामले को लेकर प्रदेश भर के राजनीतिक एवं प्रशासनिक हलकों में चर्चाओं का बाज़ार गर्म हो गया है।`;
+
+    let p2 = "";
+    if (isAssembly) {
+      p2 += `हरियाणा विधानसभा और प्रदेश की सियासत में इस विषय पर तीखी नोकझोंक और खींचतान देखने को मिली है। सदन के भीतर सत्तापक्ष और विपक्ष के दिग्गज नेताओं ने इस पर अपना-अपना कड़ा रुख अख्तियार किया। `;
+      if (subStatement) {
+        p2 += `नेताओं ने साफ तौर पर कहा कि "${subStatement}" जैसे गंभीर विषयों पर सरकार को स्पष्ट जवाबदेही तय करनी होगी। `;
+      } else {
+        p2 += `पक्ष और विपक्ष के बीच हुई तीखी बहस के बाद राजनीतिक माहौल में काफी गर्माहट देखी जा रही है। `;
+      }
+    } else if (isCrimeOrPolice) {
+      p2 += `मामले की संवेदनशीलता और कानून-व्यवस्था को देखते हुए संबंधित विभाग और पुलिस बल पूरी तरह सक्रिय हो गया है। `;
+      p2 += `पूरी घटना और उसके सभी पहलुओं की विस्तृत जांच की जा रही है। `;
+      if (subStatement) {
+        p2 += `विशेष रूप से "${subStatement}" के बाद जांच अधिकारियों पर निष्पक्ष और त्वरित कार्रवाई का दबाव बढ़ गया है। `;
+      }
+    } else if (isFarmerOrGov) {
+      p2 += `जनसरोकार और नीतिगत व्यवस्था से जुड़े इस बड़े मामले पर विभिन्न संगठनों और आम नागरिकों की तीखी प्रतिक्रिया देखने को मिली है। `;
+      p2 += `हितधारकों का कहना है कि जनहित के मुद्दों पर शासन-प्रशासन को पारदर्शी और ठोस फैसले लेने चाहिए। `;
+    } else {
+      p2 += `पूरे मामले के प्रत्यक्षदर्शियों और स्थानीय सूत्रों के अनुसार, घटनाक्रम के पीछे कई अहम कारण जुड़े हुए हैं। `;
+      p2 += `संबंधित पक्षों की ओर से बयान सामने आने के बाद अब आगामी कदमों पर सभी की निगाहें टिकी हैं। `;
+    }
+
+    let p3 = `राजनीतिक और सामाजिक जानकारों का मानना है कि "${mainEvent}" का यह प्रकरण आने वाले दिनों में और गहरा असर छोड़ सकता है। `;
+    if (isAssembly) {
+      p3 += `आगामी चुनावी और विधायी रणनीति के तहत विपक्ष इस मुद्दे को लेकर सरकार को घेरने की तैयारी में है, वहीं सत्तापक्ष भी अपने तर्कों के साथ मजबूती से डटा है। `;
+    } else {
+      p3 += `स्थानीय स्तर पर जनहित और प्रशासनिक जवाबदेही को लेकर लोग लगातार स्थिति पर नज़र बनाए हुए हैं। `;
+    }
+
+    let p4 = `इस पूरे घटनाक्रम से जुड़े हर नए मोड़, आधिकारिक बयान और कानूनी व प्रशासनिक अपडेट पर 'राजनीति का अखाड़ा' की टीम लगातार नज़र बनाए हुए है।`;
+
+    const md = `## ${cleanHeadline}
+
+${p1}
+
+### मुख्य घटनाक्रम एवं ब्यौरा
 
 ${p2}
 
-### प्रभाव एवं आगामी रणनीति
+### राजनीतिक व सामाजिक प्रभाव
 
 ${p3}
 
@@ -140,17 +226,18 @@ ${p3}
         (item.category || "").toLowerCase().includes(c.slug.toLowerCase())
     );
 
-    setTitle(headline);
+    setTitle(cleanHeadline);
     setSlug(safeSlug);
-    setExcerpt((headline + " | राजनीति का अखाड़ा पर ताज़ा समाचार व विस्तृत रिपोर्ट।").slice(0, 280));
+    setExcerpt((cleanHeadline + " — पढ़ें पूरे घटनाक्रम, बयानों और राजनीतिक प्रभाव पर 'राजनीति का अखाड़ा' की विशेष रिपोर्ट।").slice(0, 280));
     setBody(md);
-    setHighlight(`${headline} — प्रशासनिक और राजनीतिक हलकों में हलचल।`);
+    setHighlight(`${mainEvent} — सियासी हलचल तेज़।`);
     setLocation(loc);
     if (matchedCat) setCategoryId(matchedCat.id);
     setTags(`${item.categoryHindi || "हरियाणा"}, ताज़ा खबर, राजनीति`);
-    setSeoTitle(headline);
-    setSeoDescription((headline + " | ताज़ा समाचार अपडेट।").slice(0, 160));
+    setSeoTitle(cleanHeadline);
+    setSeoDescription((cleanHeadline + " — ताज़ा समाचार अपडेट।").slice(0, 160));
     setAiModalOpen(false);
+    setAiNewsLoading(false);
   }
 
   useEffect(() => {

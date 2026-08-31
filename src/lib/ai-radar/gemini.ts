@@ -1,7 +1,7 @@
 import { getGeminiApiKey } from "./settings";
 import type { FetchedNewsItem, GeminiDraftResult } from "./types";
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 function extractJson(text: string): string {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
