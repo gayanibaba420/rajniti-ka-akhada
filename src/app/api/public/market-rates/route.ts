@@ -10,28 +10,24 @@ export async function GET() {
   };
 
   try {
-    const [goldRes, silverRes, sensexRes, inrRes] = await Promise.allSettled([
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/GC=F", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/SI=F", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
+    const [goldRes, silverRes, sensexRes, niftyRes] = await Promise.allSettled([
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/GOLDBEES.NS", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/SILVERBEES.NS", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
       fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
-      fetch("https://query1.finance.yahoo.com/v8/finance/chart/INR=X", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
+      fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI", { headers, next: { revalidate: 300 } }).then((r) => r.json()),
     ]);
-
-    let usdInr = 87.5;
-    if (inrRes.status === "fulfilled" && inrRes.value?.chart?.result?.[0]?.meta?.regularMarketPrice) {
-      usdInr = inrRes.value.chart.result[0].meta.regularMarketPrice;
-    }
 
     const rates = [];
 
-    // 1. Gold 24K (per 10g in INR with Indian standard custom & GST ~15%)
+    // 1. Live 24K Gold Rate in India (per 10g) derived from NSE Gold ETF
     if (goldRes.status === "fulfilled" && goldRes.value?.chart?.result?.[0]?.meta) {
       const meta = goldRes.value.chart.result[0].meta;
-      const currentOz = meta.regularMarketPrice || 2750;
-      const prevOz = meta.chartPreviousClose || currentOz;
+      const current = meta.regularMarketPrice || 86.5;
+      const prev = meta.chartPreviousClose || current;
       
-      const gold10g = Math.round((currentOz / 31.1034768) * 10 * usdInr * 0.96); // Normalized standard Indian 24K rate
-      const prev10g = Math.round((prevOz / 31.1034768) * 10 * usdInr * 0.96);
+      // 10g 24K Physical Gold (₹86,000 - ₹88,000 range)
+      const gold10g = Math.round(current * 1000);
+      const prev10g = Math.round(prev * 1000);
       const diff = gold10g - prev10g;
 
       rates.push({
@@ -44,14 +40,15 @@ export async function GET() {
       rates.push({ label: "सोना (24K)", val: "₹86,450/10g", change: "+₹220", up: true });
     }
 
-    // 2. Silver (per 1kg in INR)
+    // 2. Live Silver Rate in India (per 1kg) derived from NSE Silver ETF
     if (silverRes.status === "fulfilled" && silverRes.value?.chart?.result?.[0]?.meta) {
       const meta = silverRes.value.chart.result[0].meta;
-      const currentOz = meta.regularMarketPrice || 32.5;
-      const prevOz = meta.chartPreviousClose || currentOz;
+      const current = meta.regularMarketPrice || 96.2;
+      const prev = meta.chartPreviousClose || current;
 
-      const silverKg = Math.round((currentOz / 31.1034768) * 1000 * usdInr * 0.95);
-      const prevKg = Math.round((prevOz / 31.1034768) * 1000 * usdInr * 0.95);
+      // 1kg Physical Silver (₹95,000 - ₹98,000 range)
+      const silverKg = Math.round(current * 1000);
+      const prevKg = Math.round(prev * 1000);
       const diff = silverKg - prevKg;
 
       rates.push({
@@ -64,7 +61,7 @@ export async function GET() {
       rates.push({ label: "चांदी", val: "₹96,200/kg", change: "+₹450", up: true });
     }
 
-    // 3. Sensex
+    // 3. Live BSE Sensex
     if (sensexRes.status === "fulfilled" && sensexRes.value?.chart?.result?.[0]?.meta) {
       const meta = sensexRes.value.chart.result[0].meta;
       const current = Math.round(meta.regularMarketPrice || 81500);
@@ -79,6 +76,21 @@ export async function GET() {
       });
     } else {
       rates.push({ label: "सेंसेक्स", val: "81,780", change: "+240", up: true });
+    }
+
+    // 4. Live NSE Nifty
+    if (niftyRes.status === "fulfilled" && niftyRes.value?.chart?.result?.[0]?.meta) {
+      const meta = niftyRes.value.chart.result[0].meta;
+      const current = Math.round(meta.regularMarketPrice || 24500);
+      const prev = Math.round(meta.chartPreviousClose || current);
+      const diff = current - prev;
+
+      rates.push({
+        label: "निफ्टी 50",
+        val: current.toLocaleString("en-IN"),
+        change: diff >= 0 ? `+${diff}` : `${diff}`,
+        up: diff >= 0,
+      });
     }
 
     return NextResponse.json({ success: true, rates, timestamp: new Date().toISOString() });
