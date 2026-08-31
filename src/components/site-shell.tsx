@@ -9,6 +9,8 @@ import { BRAND_ASSETS, type SiteConfig } from "@/lib/data";
 import type { PublicCategory } from "@/lib/types";
 import { BreakingTickerClient } from "./breaking-ticker";
 import { NewsletterSignup } from "./newsletter-signup";
+import { TopInfoBar } from "./top-info-bar";
+import { MobileStickyBar } from "./mobile-sticky-bar";
 
 function SiteBrandLogo() {
   return (
@@ -105,28 +107,49 @@ export function SiteHeader({
   const pathname = usePathname();
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
-  const dateStr = useMemo(
-    () => new Intl.DateTimeFormat("hi-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date()),
-    []
-  );
   if (pathname.startsWith("/admin")) return null;
-
-  const topBarRight = site.headerNotice || "ई-पेपर   |   लाइव टीवी";
 
   return (
     <>
       <a href="#main-content" className="fixed left-3 top-[-100px] z-[200] bg-white p-3 text-black focus:top-3">मुख्य सामग्री पर जाएं</a>
-      <div className="bg-[#181818] py-2 text-xs text-white"><div className="container-main flex justify-between gap-4"><span>{dateStr}</span><span className="hidden truncate sm:inline">{topBarRight}</span></div></div>
+      <TopInfoBar />
       <header className="surface sticky top-0 z-50 border-x-0 shadow-sm">
         <div className="container-main flex min-h-20 items-center justify-between gap-3 py-3">
           <button onClick={() => setMenu(!menu)} className="btn btn-ghost !p-2.5 lg:hidden" aria-label="मेन्यू खोलें"><Menu size={20} /></button>
           <Link href="/" className="group min-w-0 leading-none" aria-label={`${site.name} होम`}>
             <SiteBrandLogo />
           </Link>
-          <div className="flex items-center gap-2"><button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button><ThemeButton /></div>
+          <div className="flex items-center gap-2">
+            <button className="btn btn-ghost !p-2.5" onClick={() => setSearch(true)} aria-label="खोजें"><Search size={19} /></button>
+            <ThemeButton />
+          </div>
         </div>
-        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}><div className="container-main flex items-center justify-between gap-5 overflow-auto py-3 text-sm font-extrabold"><Link href="/">होम</Link>{categories.map((c) => <Link key={c.slug} href={`/category/${c.slug}`} className="whitespace-nowrap hover:text-[var(--brand)]">{c.name}</Link>)}<Link href="/blog" className="whitespace-nowrap hover:text-[var(--brand)]">ब्लॉग</Link><Link href="/admin" className="brand">CMS</Link></div></nav>
-        {menu && <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden"><div className="grid grid-cols-2 gap-2">{categories.map((c) => <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">{c.name}</Link>)}<Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">ब्लॉग</Link><Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link></div></nav>}
+        <nav aria-label="मुख्य नेविगेशन" className="hidden border-t lg:block" style={{ borderColor: "var(--line)" }}>
+          <div className="container-main flex items-center justify-between gap-5 overflow-auto py-3 text-sm font-extrabold">
+            <Link href="/" className={pathname === "/" ? "brand" : "hover:text-[var(--brand)]"}>होम</Link>
+            {categories.map((c) => (
+              <Link key={c.slug} href={`/category/${c.slug}`} className={`whitespace-nowrap ${pathname === `/category/${c.slug}` ? "brand" : "hover:text-[var(--brand)]"}`}>
+                {c.name}
+              </Link>
+            ))}
+            <Link href="/blog" className={`whitespace-nowrap ${pathname.startsWith("/blog") ? "brand" : "hover:text-[var(--brand)]"}`}>ब्लॉग</Link>
+            <Link href="/admin" className="brand font-black">CMS</Link>
+          </div>
+        </nav>
+        {menu && (
+          <nav aria-label="मोबाइल नेविगेशन" className="absolute inset-x-0 top-full surface border-x-0 p-4 shadow-xl lg:hidden">
+            <div className="grid grid-cols-2 gap-2">
+              <Link onClick={() => setMenu(false)} href="/" className="rounded-lg p-3 font-bold hover:bg-black/5">होम</Link>
+              {categories.map((c) => (
+                <Link onClick={() => setMenu(false)} key={c.slug} href={`/category/${c.slug}`} className="rounded-lg p-3 font-bold hover:bg-black/5">
+                  {c.name}
+                </Link>
+              ))}
+              <Link onClick={() => setMenu(false)} href="/blog" className="rounded-lg p-3 font-bold hover:bg-black/5">ब्लॉग</Link>
+              <Link onClick={() => setMenu(false)} href="/admin" className="rounded-lg p-3 font-bold brand">एडमिन CMS</Link>
+            </div>
+          </nav>
+        )}
       </header>
       <BreakingTickerClient initialItems={breakingItems} />
       <nav aria-label="श्रेणियां" className="border-b lg:hidden" style={{ borderColor: "var(--line)" }}>
@@ -150,6 +173,7 @@ export function SiteHeader({
         </div>
       </nav>
       <SearchOverlay open={search} close={() => setSearch(false)} />
+      <MobileStickyBar />
     </>
   );
 }

@@ -5,6 +5,13 @@ import { DbAdSlot } from "@/components/db-ad-slot";
 import { EditorsPickBadge } from "@/components/article-badges";
 import { HomepageLiveRefresh } from "@/components/homepage-live-refresh";
 import { SidebarList, StoryCard } from "@/components/story-card";
+import { DistrictSelectorBar } from "@/components/district-selector";
+import { WebStoriesSection } from "@/components/web-stories-section";
+import { VideoGallerySection } from "@/components/video-gallery-section";
+import { OpinionPollWidget } from "@/components/opinion-poll-widget";
+import { OpinionDeskSection } from "@/components/opinion-desk-section";
+import { WhatsAppJoinBanner } from "@/components/whatsapp-join-banner";
+import { TrendingRankingWidget } from "@/components/trending-ranking-widget";
 import {
   getArticleBySlug,
   getCategories,
@@ -72,9 +79,16 @@ export default async function Home() {
         latestSlug={lead.slug}
         latestPublishedAt={lead.publishedAt}
       />
-      <section className="container-main py-5">
+      <DistrictSelectorBar />
+
+      <section className="container-main py-4">
         <DbAdSlot position="HEADER" />
       </section>
+
+      {/* Visual Web Stories Carousel */}
+      <div className="container-main">
+        <WebStoriesSection articles={articles} />
+      </div>
 
       {isHomepageSectionEnabled(homepage, "homepage_show_lead") && (
         <section className="container-main grid gap-5 pb-10 lg:grid-cols-[1.65fr_.85fr]">
@@ -114,6 +128,11 @@ export default async function Home() {
         </section>
       )}
 
+      {/* WhatsApp Community Join Banner */}
+      <div className="container-main">
+        <WhatsAppJoinBanner />
+      </div>
+
       {isHomepageSectionEnabled(homepage, "homepage_show_live") && (
         <section className="border-y bg-[#171717] py-8 text-white">
           <div className="container-main">
@@ -137,6 +156,11 @@ export default async function Home() {
         </section>
       )}
 
+      {/* Opinion & Editorial Desk */}
+      <div className="container-main">
+        <OpinionDeskSection articles={articles} />
+      </div>
+
       {isHomepageSectionEnabled(homepage, "homepage_show_trending") && (
         <section className="border-y bg-[var(--surface)] py-12">
           <div className="container-main grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -148,14 +172,15 @@ export default async function Home() {
                 ))}
               </div>
             </div>
-            <SidebarList
-              title="सबसे ज्यादा पढ़ी गई"
-              variant="trending"
-              items={(trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views)).slice(0, 5)}
-            />
+            <TrendingRankingWidget articles={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views)} />
           </div>
         </section>
       )}
+
+      {/* Daily Interactive Opinion Poll */}
+      <div className="container-main">
+        <OpinionPollWidget />
+      </div>
 
       {isHomepageSectionEnabled(homepage, "homepage_show_hisar") && (
         <section className="container-main py-12">
@@ -194,6 +219,11 @@ export default async function Home() {
         </section>
       )}
 
+      {/* Sleek Multimedia Video & Reels Showcase */}
+      <div className="container-main">
+        <VideoGallerySection />
+      </div>
+
       {isHomepageSectionEnabled(homepage, "homepage_show_haryana") && (
         <section className="bg-[var(--surface)] py-12">
           <div className="container-main grid gap-8 lg:grid-cols-[1fr_330px]">
@@ -209,7 +239,7 @@ export default async function Home() {
               <DbAdSlot position="SIDEBAR" />
               <div className="mt-6">
                 <SidebarList
-                  title="सबसे ज्यादा पढ़ी गई"
+                  title="ताज़ा अपडेट्स"
                   variant="trending"
                   items={trending.length ? trending : articles.slice().sort((a, b) => b.views - a.views).slice(0, 5)}
                 />
@@ -243,21 +273,6 @@ export default async function Home() {
           </section>
         );
       })}
-
-      {isHomepageSectionEnabled(homepage, "homepage_show_video") && (
-        <section className="container-main pb-5">
-          <div className="overflow-hidden rounded-2xl bg-[var(--brand)] p-7 text-white sm:flex sm:items-center sm:justify-between">
-            <div>
-              <span className="text-sm font-bold text-[var(--accent)]">वीडियो न्यूज़</span>
-              <h2 className="mt-2 text-2xl font-black">हरियाणा की बड़ी खबरें, 5 मिनट में</h2>
-              <p className="mt-2 text-white/80">हर शाम 7 बजे हमारा विशेष बुलेटिन देखें।</p>
-            </div>
-            <button type="button" className="btn touch-target mt-5 bg-white text-[var(--brand)] sm:mt-0">
-              <Play fill="currentColor" /> अभी देखें
-            </button>
-          </div>
-        </section>
-      )}
     </>
   );
 }

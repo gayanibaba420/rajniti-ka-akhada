@@ -10,6 +10,11 @@ import { DbAdSlot } from "@/components/db-ad-slot";
 import { RelativeTime } from "@/components/relative-time";
 import { SidebarList, StoryCard } from "@/components/story-card";
 import { ViewTracker } from "@/components/view-tracker";
+import { ReadingProgressBar } from "@/components/reading-progress-bar";
+import { TextToSpeechPlayer } from "@/components/text-to-speech-player";
+import { FontSizeAdjuster } from "@/components/font-size-adjuster";
+import { ArticleReactions } from "@/components/article-reactions";
+import { WhatsAppJoinBanner } from "@/components/whatsapp-join-banner";
 import { getArticleBySlug, getCategories, getPublishedArticles, getRelatedArticles, getSiteConfig } from "@/lib/articles";
 import { resolveOgImageUrl } from "@/lib/data";
 import { checkDbConnection, hasDatabaseUrl, prisma } from "@/lib/db";
@@ -97,7 +102,8 @@ export default async function ArticlePage({ params }: Props) {
     new Date(article.updatedAt).getTime() > new Date(article.publishedAt).getTime() + 60_000;
 
   return (
-    <div className="container-main py-7 print-container">
+    <div className="container-main py-7 print-container relative">
+      <ReadingProgressBar />
       <ViewTracker slug={slug} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb).replace(/</g, "\\u003c") }} />
@@ -108,6 +114,13 @@ export default async function ArticlePage({ params }: Props) {
           <CategoryBadge label={article.categoryName} slug={article.category} className="mt-4 !px-3 !py-1.5 !text-sm" />
           <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">{article.title}</h1>
           <p className="muted mt-4 border-l-4 border-[var(--accent)] pl-4 text-lg leading-8">{article.excerpt}</p>
+          
+          {/* Audio News Bulletin Player */}
+          <TextToSpeechPlayer
+            title={article.title}
+            text={article.excerpt + " " + (blocks.map((b) => ("text" in b ? b.text : "")).join(" ") || article.content.join(" "))}
+          />
+
           <div className="muted my-5 flex flex-wrap items-center gap-4 border-y py-4 text-sm no-print" style={{ borderColor: "var(--line)" }}>
             <AuthorLink name={article.author} slug={article.authorSlug} />
             <span className="flex items-center gap-1"><Clock size={15} /><RelativeTime iso={article.publishedAt} /></span>
@@ -120,7 +133,10 @@ export default async function ArticlePage({ params }: Props) {
           </div>
           <div className="no-print flex flex-wrap items-center justify-between gap-3">
             <ShareActions title={article.title} />
-            <PrintButton />
+            <div className="flex items-center gap-2">
+              <FontSizeAdjuster />
+              <PrintButton />
+            </div>
           </div>
           {article.image ? (
             <figure className="mt-6">
@@ -145,6 +161,13 @@ export default async function ArticlePage({ params }: Props) {
             ))}
           </div>
           <DbAdSlot position="ARTICLE_BOTTOM" />
+
+          {/* In-Article WhatsApp Community Banner */}
+          <WhatsAppJoinBanner />
+
+          {/* Interactive Emoji Reactions */}
+          <ArticleReactions articleSlug={slug} />
+
           <div className="mt-7 flex flex-wrap gap-2">{article.tags.map((tag) => <Link className="rounded-full border px-3 py-1 text-sm font-bold" style={{ borderColor: "var(--line)" }} href={`/search?q=${tag}`} key={tag}>#{tag}</Link>)}</div>
           <section className="surface mt-8 flex gap-4 rounded-xl p-5 no-print">
             <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-xl font-black text-white">{article.author[0]}</div>
