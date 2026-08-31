@@ -21,6 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import { AI_RADAR_STATUS_LABELS, AI_RADAR_VERIFICATION_LABELS, type AiRadarSettings } from "@/lib/ai-radar/types";
+import type { ContentBlock } from "@/lib/types";
 import { LoadingBlock, MediaPickerModal, PanelHeader } from "./shared";
 import type { MediaItem, Meta, User } from "./types";
 
@@ -186,6 +187,25 @@ export function AiRadarPanel({
     return found ? found.id : meta.categories[0].id;
   }
 
+  function editorTextToBlocks(text: string): ContentBlock[] {
+    return text
+      .split(/\n\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((paragraph) => {
+        if (paragraph.startsWith("### ")) {
+          return { type: "heading" as const, level: 3 as const, text: paragraph.replace(/^###\s+/, "") };
+        }
+        if (paragraph.startsWith("## ")) {
+          return { type: "heading" as const, level: 2 as const, text: paragraph.replace(/^##\s+/, "") };
+        }
+        if (paragraph.startsWith("> ")) {
+          return { type: "quote" as const, text: paragraph.replace(/^>\s+/, "") };
+        }
+        return { type: "paragraph" as const, text: paragraph };
+      });
+  }
+
   function cleanNewsHeadline(rawTitle: string): string {
     return rawTitle
       .replace(/\s*\.\.\.\s*$/, "")
@@ -246,7 +266,7 @@ export function AiRadarPanel({
 
     let p4 = `इस पूरे घटनाक्रम से जुड़े हर नए मोड़, आधिकारिक बयान और कानूनी व प्रशासनिक अपडेट पर 'राजनीति का अखाड़ा' की टीम लगातार नज़र बनाए हुए है।`;
 
-    const blocks = [
+    const blocks: ContentBlock[] = [
       { type: "paragraph" as const, text: p1 },
       { type: "paragraph" as const, text: p2 },
       { type: "paragraph" as const, text: p3 },
@@ -699,7 +719,7 @@ ${p3}
                   <div className="mt-4 space-y-3 rounded-xl bg-black/5 dark:bg-white/5 p-5 text-sm leading-relaxed">
                     {previewData.blocks.map((b, idx) => (
                       <p key={idx} className={idx === 0 ? "font-semibold text-neutral-900 dark:text-neutral-100" : "text-neutral-700 dark:text-neutral-300"}>
-                        {b.text}
+                        {"text" in b ? (b as { text: string }).text : ""}
                       </p>
                     ))}
                   </div>

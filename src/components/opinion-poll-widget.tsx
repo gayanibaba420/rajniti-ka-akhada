@@ -6,6 +6,7 @@ import { Vote, CheckCircle2 } from "lucide-react";
 export function OpinionPollWidget() {
   const pollId = "poll_2026_08_31";
   const question = "क्या हरियाणा विधानसभा में विधायकों और नेताओं के बीच मर्यादित भाषा के लिए कड़े नियम बनने चाहिए?";
+  const [mounted, setMounted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
 
@@ -16,6 +17,7 @@ export function OpinionPollWidget() {
   ]);
 
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem(pollId);
     if (saved !== null) {
       setSelectedOption(Number(saved));
@@ -95,7 +97,7 @@ export function OpinionPollWidget() {
       </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-neutral-500 font-bold border-t border-neutral-200 dark:border-neutral-800 pt-3">
-        <span>कुल वोट: {totalVotes.toLocaleString("hi-IN")}</span>
+        <span>कुल वोट: {mounted ? totalVotes.toLocaleString("en-IN") : totalVotes}</span>
         <span>{hasVoted ? "✓ आपका वोट दर्ज हो चुका है" : "वोट करने के लिए विकल्प चुनें"}</span>
       </div>
     </section>

@@ -19,17 +19,11 @@ const CITIES: WeatherCity[] = [
 ];
 
 export function TopInfoBar() {
+  const [mounted, setMounted] = useState(false);
   const [cityIndex, setCityIndex] = useState(0);
   const [marketIndex, setMarketIndex] = useState(0);
 
-  const dateStr = useMemo(() => {
-    return new Intl.DateTimeFormat("hi-IN", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(new Date());
-  }, []);
+  const [dateStr, setDateStr] = useState("सोमवार, 31 अगस्त 2026");
 
   const marketPulse = [
     { label: "सोना (24K)", val: "₹72,450/10g", change: "+₹210", up: true },
@@ -38,6 +32,20 @@ export function TopInfoBar() {
   ];
 
   useEffect(() => {
+    setMounted(true);
+    try {
+      setDateStr(
+        new Intl.DateTimeFormat("hi-IN", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date())
+      );
+    } catch {
+      // fallback
+    }
+
     const timer = setInterval(() => {
       setCityIndex((prev) => (prev + 1) % CITIES.length);
       setMarketIndex((prev) => (prev + 1) % marketPulse.length);
